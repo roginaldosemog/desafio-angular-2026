@@ -189,7 +189,8 @@ export class ConsultaLotes {
     this.dialogo
       .open<IncluirLancamento, DadosModalLancamento>(IncluirLancamento, {
         data: dados,
-        width: 'min(640px, 100vw)',
+        // DS-20: 800 px, para a grade de lançamentos caber sem rolagem horizontal.
+        width: 'min(800px, 100vw)',
         maxWidth: '100vw',
         // IL-01: o foco começa no primeiro campo, a Conta Corrente.
         autoFocus: '#conta-corrente',

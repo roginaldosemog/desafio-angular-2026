@@ -1,0 +1,13 @@
+// Mesmo visual das outras tabelas (src/styles/_tabela.scss).
+@use 'tabela';
+
+:host {
+  display: block;
+}
+
+@include tabela.estilos;
+
+.coluna-selecao {
+  width: 48px;
+  padding-right: 0;
+}

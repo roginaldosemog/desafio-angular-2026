@@ -7,6 +7,7 @@ import { MatButtonHarness } from '@angular/material/button/testing';
 import { MatCheckboxHarness } from '@angular/material/checkbox/testing';
 import { MATERIAL_ANIMATIONS } from '@angular/material/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MatDialogHarness } from '@angular/material/dialog/testing';
 import { MatFormFieldHarness } from '@angular/material/form-field/testing';
 import { MatInputHarness } from '@angular/material/input/testing';
 import { MatRadioButtonHarness } from '@angular/material/radio/testing';
@@ -102,7 +103,11 @@ describe('IncluirLancamento', () => {
     (
       await loader.getHarness(MatFormFieldHarness.with({ selector: `.campo-${classe}` }))
     ).getTextErrors();
-  const botao = (texto: string) => loader.getHarness(MatButtonHarness.with({ text: texto }));
+  /** Botões do rodapé e da grade de lançamentos (os anexos têm botões com os mesmos nomes). */
+  const botao = (texto: string) =>
+    loader.getHarness(
+      MatButtonHarness.with({ ancestor: 'mat-dialog-actions, .acoes-grade', text: texto }),
+    );
   const texto = (seletor: string) =>
     (fixture.nativeElement.querySelector(seletor) as HTMLElement | null)?.textContent?.trim();
 
@@ -156,13 +161,13 @@ describe('IncluirLancamento', () => {
     expect(texto('[mat-dialog-title]')).toBe('Incluir Lançamento');
   });
 
-  it('IL-02: agrupa os campos nas seções "Conta Corrente" e "Documento CSC"', async () => {
+  it('IL-02: agrupa os campos nas seções "Conta Corrente", "Documento CSC" e "Anexo"', async () => {
     await criar();
 
     const legendas = [...fixture.nativeElement.querySelectorAll('fieldset > legend')].map(
       (legenda: Element) => legenda.textContent?.trim(),
     );
-    expect(legendas).toEqual(['Conta Corrente', 'Documento CSC']);
+    expect(legendas).toEqual(['Conta Corrente', 'Documento CSC', 'Anexo']);
   });
 
   it('IL-03: conta encontrada mostra o titular ao lado', async () => {
@@ -233,7 +238,9 @@ describe('IncluirLancamento', () => {
     await (await botao('Incluir')).click();
 
     expect(incluir).toHaveBeenCalledWith(null, DADOS_ESPERADOS);
-    const grade = await loader.getHarness(MatTableHarness);
+    const grade = await loader.getHarness(
+      MatTableHarness.with({ ancestor: 'app-grade-lancamentos' }),
+    );
     expect(await grade.getRows()).toHaveLength(1);
     expect(await (await campo('conta-corrente')).getValue()).toBe('');
     expect(await errosDo('conta-corrente')).toEqual([]);
@@ -289,7 +296,11 @@ describe('IncluirLancamento', () => {
     await (await botao('Incluir')).click();
 
     expect(await (await campo('documento')).getValue()).toBe('DOC-9');
-    expect(await (await loader.getHarness(MatTableHarness)).getRows()).toHaveLength(0);
+    expect(
+      await (
+        await loader.getHarness(MatTableHarness.with({ ancestor: 'app-grade-lancamentos' }))
+      ).getRows(),
+    ).toHaveLength(0);
   });
 
   describe('lançamentos do lote', () => {
@@ -317,7 +328,9 @@ describe('IncluirLancamento', () => {
     const habilitados = async () => {
       const resultado: string[] = [];
       for (const nome of ['Visualizar', 'Alterar', 'Excluir', 'Duplicar']) {
-        const botoes = await loader.getAllHarnesses(MatButtonHarness.with({ text: nome }));
+        const botoes = await loader.getAllHarnesses(
+          MatButtonHarness.with({ ancestor: '.acoes-grade', text: nome }),
+        );
         if (botoes.length > 0 && !(await botoes[0].isDisabled())) {
           resultado.push(nome);
         }
@@ -329,7 +342,11 @@ describe('IncluirLancamento', () => {
       await abrirLote();
 
       expect(listar).toHaveBeenCalledWith(LOTE.id);
-      expect(await (await loader.getHarness(MatTableHarness)).getRows()).toHaveLength(2);
+      expect(
+        await (
+          await loader.getHarness(MatTableHarness.with({ ancestor: 'app-grade-lancamentos' }))
+        ).getRows(),
+      ).toHaveLength(2);
     });
 
     it('IL-14: as ações da grade exigem exatamente um lançamento selecionado', async () => {
@@ -352,7 +369,11 @@ describe('IncluirLancamento', () => {
       const documento = await campo('documento');
       expect(await documento.getValue()).toBe('DOC-1');
       expect(await documento.isDisabled()).toBe(true);
-      expect(await loader.getAllHarnesses(MatButtonHarness.with({ text: 'Incluir' }))).toEqual([]);
+      expect(
+        await loader.getAllHarnesses(
+          MatButtonHarness.with({ ancestor: 'mat-dialog-actions', text: 'Incluir' }),
+        ),
+      ).toEqual([]);
     });
 
     it('IL-15: Alterar carrega para edição e o botão principal salva a alteração', async () => {
@@ -367,7 +388,9 @@ describe('IncluirLancamento', () => {
         PRIMEIRO.id,
         expect.objectContaining({ documento: 'DOC-1-ALTERADO' }),
       );
-      const grade = await loader.getHarness(MatTableHarness);
+      const grade = await loader.getHarness(
+        MatTableHarness.with({ ancestor: 'app-grade-lancamentos' }),
+      );
       expect((await grade.getCellTextByColumnName())['documento'].text).toEqual([
         'DOC-1-ALTERADO',
         'DOC-2',
@@ -388,7 +411,11 @@ describe('IncluirLancamento', () => {
         LOTE.id,
         expect.objectContaining({ documento: 'DOC-2', valorCentavos: 900 }),
       );
-      expect(await (await loader.getHarness(MatTableHarness)).getRows()).toHaveLength(3);
+      expect(
+        await (
+          await loader.getHarness(MatTableHarness.with({ ancestor: 'app-grade-lancamentos' }))
+        ).getRows(),
+      ).toHaveLength(3);
     });
 
     it('IL-15: Excluir pede confirmação e remove o lançamento da grade', async () => {
@@ -403,7 +430,11 @@ describe('IncluirLancamento', () => {
       await fixture.whenStable();
 
       expect(excluir).toHaveBeenCalledWith(PRIMEIRO.id);
-      expect(await (await loader.getHarness(MatTableHarness)).getRows()).toHaveLength(1);
+      expect(
+        await (
+          await loader.getHarness(MatTableHarness.with({ ancestor: 'app-grade-lancamentos' }))
+        ).getRows(),
+      ).toHaveLength(1);
     });
 
     it('CL-18: no modo somente leitura, só é possível visualizar', async () => {
@@ -411,11 +442,88 @@ describe('IncluirLancamento', () => {
       await selecionar('DOC-1');
 
       expect(await habilitados()).toEqual(['Visualizar']);
-      expect(await loader.getAllHarnesses(MatButtonHarness.with({ text: 'Incluir' }))).toEqual([]);
+      expect(
+        await loader.getAllHarnesses(
+          MatButtonHarness.with({ ancestor: 'mat-dialog-actions', text: 'Incluir' }),
+        ),
+      ).toEqual([]);
       expect(await (await campo('documento')).isDisabled()).toBe(true);
       const lupa = await loader.getHarness(MatButtonHarness.with({ selector: '.lupa' }));
       expect(await lupa.isDisabled()).toBe(true);
       expect(texto('[mat-dialog-title]')).toBe('Visualizar Lote 5');
+    });
+  });
+
+  describe('anexos', () => {
+    /** Simula o navegador: escolhe arquivos no seletor e dispara o "change". */
+    function escolherArquivos(...nomes: string[]) {
+      const seletor: HTMLInputElement = fixture.nativeElement.querySelector('.seletor-arquivo');
+      const arquivos = nomes.map(
+        (nome) => new File(['conteúdo'], nome, { type: 'application/pdf' }),
+      );
+      Object.defineProperty(seletor, 'files', { value: arquivos, configurable: true });
+      seletor.dispatchEvent(new Event('change'));
+    }
+
+    // Só as linhas de dados: a linha "Nenhum registro encontrado." também tem a classe mat-mdc-row.
+    const linhasDeAnexo = () =>
+      fixture.nativeElement.querySelectorAll('app-grade-anexos tr[mat-row]');
+    const botaoAnexo = (texto: string) =>
+      loader.getHarness(MatButtonHarness.with({ ancestor: '.acoes-anexo', text: texto }));
+
+    it('IL-10: Incluir anexa os arquivos escolhidos, com nome e data de inclusão', async () => {
+      await criar();
+
+      escolherArquivos('comprovante.pdf', 'recibo.pdf');
+      await fixture.whenStable();
+
+      expect(linhasDeAnexo()).toHaveLength(2);
+      expect(linhasDeAnexo()[0].textContent).toContain('comprovante.pdf');
+    });
+
+    it('IL-10: Visualizar e Excluir exigem um anexo escolhido; Excluir remove o anexo', async () => {
+      await criar();
+      escolherArquivos('comprovante.pdf', 'recibo.pdf');
+      await fixture.whenStable();
+      expect(await (await botaoAnexo('Excluir')).isDisabled()).toBe(true);
+
+      const [primeiro] = await loader.getAllHarnesses(
+        MatRadioButtonHarness.with({ ancestor: 'app-grade-anexos' }),
+      );
+      await primeiro.check();
+      await (await botaoAnexo('Excluir')).click();
+
+      expect(linhasDeAnexo()).toHaveLength(1);
+      expect(linhasDeAnexo()[0].textContent).toContain('recibo.pdf');
+    });
+
+    it('IL-10: Visualizar mostra os dados do anexo num diálogo', async () => {
+      await criar();
+      escolherArquivos('comprovante.pdf');
+      await fixture.whenStable();
+      const [anexo] = await loader.getAllHarnesses(
+        MatRadioButtonHarness.with({ ancestor: 'app-grade-anexos' }),
+      );
+      await anexo.check();
+
+      await (await botaoAnexo('Visualizar')).click();
+
+      const raiz = TestbedHarnessEnvironment.documentRootLoader(fixture);
+      const dialogo = await raiz.getHarness(MatDialogHarness);
+      expect(await dialogo.getContentText()).toContain('comprovante.pdf');
+    });
+
+    it('IL-10: os anexos vão no lançamento e o formulário volta sem anexos', async () => {
+      await criar();
+      await preencherValido();
+      escolherArquivos('comprovante.pdf');
+      await fixture.whenStable();
+
+      await (await botao('Incluir')).click();
+
+      const [, dados] = incluir.mock.calls[0];
+      expect(dados.anexos.map((anexo) => anexo.nomeArquivo)).toEqual(['comprovante.pdf']);
+      expect(linhasDeAnexo()).toHaveLength(0);
     });
   });
 

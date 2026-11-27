@@ -12,6 +12,9 @@
   display: flex;
   flex-direction: column;
   gap: var(--app-espaco-3);
+  // O fieldset tem largura mínima igual ao conteúdo por padrão: cresceria até a largura da
+  // tabela de anexos. Com 0, a tabela rola dentro da própria área, como nas outras telas.
+  min-inline-size: 0;
   margin: 0;
   padding: var(--app-espaco-4);
   border: 1px solid var(--app-border);
@@ -116,4 +119,15 @@ mat-form-field {
   justify-content: flex-end;
   gap: var(--app-espaco-2);
   margin-top: var(--app-espaco-2);
+}
+
+.seletor-arquivo {
+  display: none;
+}
+
+.acoes-anexo {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--app-espaco-2);
 }

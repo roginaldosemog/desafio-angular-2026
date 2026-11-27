@@ -30,7 +30,8 @@ Angular 22.3 · Angular Material 22.3 · TypeScript 6.0 · RxJS 7.8 · Vitest 5.
   (`valorPositivo`) e um assíncrono genérico (`existeNoCadastro`, para conta e evento, validado ao sair do
   campo). Aberto
   pelo `MatDialog` com o injetor da página, para usar as APIs da rota. O mesmo modal inclui, altera,
-  duplica e exclui lançamentos, e abre somente leitura no Visualizar (modo como união discriminada).
+  duplica e exclui lançamentos, e abre somente leitura no Visualizar (modo como união discriminada). Anexos
+  num `FormArray`.
 - **Campo monetário e máscara de data próprios**, sem biblioteca de máscara: o monetário é um
   `ControlValueAccessor` preenchido da direita para a esquerda, com valor em centavos.
 - **Estado com signals:** a página guarda filtros, página e seleção em signals. A pesquisa usa

@@ -105,8 +105,9 @@ estrutura e proporção, não pixel perfect.
 
 ## Modal
 
-- **DS-20** Largura de 640 px e altura máxima de 90% da tela. Só o corpo rola:
-  - **Topo fixo:** título em caixa alta (13 px, peso 700).
+- **DS-20** Largura de 800 px. A referência tem cerca de 620 px, mas a grade de lançamentos, que
+  lá fica numa tela separada, aqui fica dentro do modal e precisa de espaço. Só o corpo rola:
+  - **Topo fixo:** título com 16 px e peso 600, o mesmo de todos os diálogos.
   - **Rodapé fixo:** "Manter dados na tela" à esquerda; INCLUIR (primário) e FECHAR (contorno) à
     direita.
 - **DS-21** Seções como grupo com borda (`fieldset`): borda de 1 px, raio de 6 px, padding de 16 px

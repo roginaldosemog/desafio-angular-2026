@@ -100,6 +100,19 @@ describe('LancamentosApiMock', () => {
     });
   });
 
+  it('IL-10: o servidor registra o usuário dos anexos incluídos', async () => {
+    const anexo = {
+      nomeArquivo: 'comprovante.pdf',
+      descricao: 'comprovante.pdf',
+      dataHoraInclusao: '2026-06-01T14:00:00' as const,
+      usuario: '',
+    };
+
+    const incluido = await firstValueFrom(lancamentos.incluir(null, dados({ anexos: [anexo] })));
+
+    expect(incluido.anexos).toEqual([{ ...anexo, usuario: USUARIO_LOGADO }]);
+  });
+
   it('IL-03: recusa conta corrente inexistente', async () => {
     await expect(
       firstValueFrom(lancamentos.incluir(null, dados({ contaCorrente: '99999' }))),

@@ -1,3 +1,4 @@
+import { formatDate } from '@angular/common';
 import {
   afterNextRender,
   Component,
@@ -6,11 +7,13 @@ import {
   ElementRef,
   inject,
   Injector,
+  LOCALE_ID,
   signal,
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import {
+  FormControl,
   FormGroupDirective,
   NonNullableFormBuilder,
   ReactiveFormsModule,
@@ -24,24 +27,27 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { filter, finalize, Observable, startWith, switchMap, take } from 'rxjs';
+import { filter, finalize, map, Observable, startWith, switchMap, take } from 'rxjs';
 import {
   DadosDialogoMensagem,
   DialogoMensagem,
 } from '../../../../shared/components/dialogo-mensagem/dialogo-mensagem';
 import { CampoMonetario } from '../../../../shared/directives/campo-monetario';
+import { paraDataHoraIso } from '../../../../shared/datas/datas-pt-br';
 import { valorPositivo } from '../../../../shared/forms/validadores';
 import { CadastrosApi } from '../../data-access/cadastros-api';
 import { LancamentosApi } from '../../data-access/lancamentos-api';
 import { existeNoCadastro } from '../../forms/existe-no-cadastro';
 import { Evento } from '../../models/cadastros';
 import {
+  Anexo,
   DadosLancamento,
   Lancamento,
   ROTULO_SITUACAO_DOCUMENTO_CSC,
   ROTULO_SITUACAO_LANCAMENTO,
 } from '../../models/lancamento';
 import { Lote } from '../../models/lote';
+import { GradeAnexos } from '../grade-anexos/grade-anexos';
 import { GradeLancamentos } from '../grade-lancamentos/grade-lancamentos';
 import { PesquisaEvento } from '../pesquisa-evento/pesquisa-evento';
 
@@ -94,6 +100,7 @@ type Modo =
     MatInputModule,
     MatSelectModule,
     CampoMonetario,
+    GradeAnexos,
     GradeLancamentos,
   ],
   templateUrl: './incluir-lancamento.html',
@@ -108,6 +115,7 @@ export class IncluirLancamento {
   private readonly elemento = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly injector = inject(Injector);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly idioma = inject(LOCALE_ID);
 
   protected readonly historicos = toSignal(this.cadastros.listarHistoricos(), { initialValue: [] });
   protected readonly pontosAtendimento = toSignal(this.cadastros.listarPontosAtendimento(), {
@@ -201,7 +209,16 @@ export class IncluirLancamento {
       complementoHistorico: ['', [Validators.required, Validators.maxLength(200)]],
       idDocumentoCsc: ['', Validators.maxLength(20)],
     }),
+    // IL-10: lista que cresce e diminui, parte do valor do formulário.
+    anexos: this.fb.array<FormControl<Anexo>>([]),
   });
+
+  /** Os anexos na tela, como signal: a grade acompanha cada inclusão e exclusão. */
+  protected readonly anexos = toSignal(
+    this.form.controls.anexos.valueChanges.pipe(map(() => this.form.controls.anexos.getRawValue())),
+    { initialValue: [] },
+  );
+  protected readonly anexoSelecionado = signal<number | null>(null);
 
   /** "Manter dados na tela": fora do formulário, porque não é dado do lançamento. */
   protected readonly manterDados = this.fb.control(false);
@@ -257,6 +274,48 @@ export class IncluirLancamento {
         controle.setValue(String(evento.id));
         controle.markAsTouched();
       });
+  }
+
+  /** IL-10: cada arquivo escolhido vira um anexo; o usuário é registrado pelo servidor. */
+  protected adicionarArquivos(evento: Event): void {
+    const seletor = evento.target as HTMLInputElement;
+    const agora = paraDataHoraIso(new Date());
+    for (const arquivo of Array.from(seletor.files ?? [])) {
+      this.form.controls.anexos.push(
+        this.fb.control<Anexo>({
+          nomeArquivo: arquivo.name,
+          descricao: arquivo.name,
+          dataHoraInclusao: agora,
+          usuario: '',
+        }),
+      );
+    }
+    // Limpa o seletor: escolher o mesmo arquivo de novo também dispara o "change".
+    seletor.value = '';
+  }
+
+  protected visualizarAnexo(): void {
+    const posicao = this.anexoSelecionado();
+    const anexo = posicao === null ? undefined : this.anexos()[posicao];
+    if (anexo) {
+      const quando = formatDate(anexo.dataHoraInclusao, 'dd/MM/yyyy HH:mm', this.idioma);
+      const quem = anexo.usuario ? ` por ${anexo.usuario}` : '';
+      this.dialogo.open<DialogoMensagem, DadosDialogoMensagem>(DialogoMensagem, {
+        data: {
+          titulo: `Anexo ${anexo.nomeArquivo}`,
+          mensagem: `${anexo.descricao}. Incluído em ${quando}${quem}.`,
+        },
+        width: '420px',
+      });
+    }
+  }
+
+  protected excluirAnexo(): void {
+    const posicao = this.anexoSelecionado();
+    if (posicao !== null) {
+      this.form.controls.anexos.removeAt(posicao);
+      this.anexoSelecionado.set(null);
+    }
   }
 
   /** IL-12, IL-13 e IL-15: inclui ou salva a alteração, só com o formulário válido. */
@@ -346,6 +405,9 @@ export class IncluirLancamento {
   /** Sai de Alterar ou Visualizar e volta ao formulário vazio de inclusão. */
   protected voltarParaInclusao(): void {
     this.modo.set({ tipo: 'incluir' });
+    // O FormArray precisa ser esvaziado: o reset só volta o valor de cada anexo existente.
+    this.form.controls.anexos.clear();
+    this.anexoSelecionado.set(null);
     // resetForm (e não só reset): também zera o "enviado", senão os erros reapareceriam.
     this.formulario().resetForm();
     this.titular.set('');
@@ -404,6 +466,12 @@ export class IncluirLancamento {
 
   /** Lançamento → valores da tela. O `resetForm` também limpa "tocado" e "enviado". */
   private carregar(lancamento: Lancamento): void {
+    // O reset preenche controles existentes: primeiro, um controle por anexo do lançamento.
+    this.form.controls.anexos.clear();
+    for (const anexo of lancamento.anexos) {
+      this.form.controls.anexos.push(this.fb.control(anexo));
+    }
+    this.anexoSelecionado.set(null);
     this.formulario().resetForm({
       conta: {
         numero: lancamento.contaCorrente,
@@ -419,6 +487,7 @@ export class IncluirLancamento {
         complementoHistorico: lancamento.documentoCsc.complementoHistorico,
         idDocumentoCsc: lancamento.documentoCsc.idDocumentoCsc,
       },
+      anexos: [...lancamento.anexos],
     });
     this.titular.set(lancamento.titular);
     // Com o formulário desabilitado (Visualizar), o validador não roda: busca a descrição aqui.
@@ -471,8 +540,7 @@ export class IncluirLancamento {
         complementoHistorico: documentoCsc.complementoHistorico.trim(),
         idDocumentoCsc: documentoCsc.idDocumentoCsc.trim(),
       },
-      // Anexos: próximo passo (IL-10).
-      anexos: [],
+      anexos: this.form.controls.anexos.getRawValue(),
     };
   }
 }

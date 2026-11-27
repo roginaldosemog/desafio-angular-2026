@@ -241,6 +241,50 @@
         </mat-form-field>
       </div>
     </fieldset>
+
+    <fieldset class="secao">
+      <legend>Anexo</legend>
+      <app-grade-anexos [anexos]="anexos()" [(selecionado)]="anexoSelecionado" />
+      <!-- Seletor de arquivo do navegador, acionado pelo botão Incluir. -->
+      <input
+        #seletorArquivo
+        type="file"
+        class="seletor-arquivo"
+        multiple
+        tabindex="-1"
+        aria-hidden="true"
+        (change)="adicionarArquivos($event)"
+      />
+      <div class="acoes-anexo" role="group" aria-label="Ações dos anexos">
+        <button
+          matButton="outlined"
+          type="button"
+          aria-label="Visualizar anexo"
+          [disabled]="anexoSelecionado() === null"
+          (click)="visualizarAnexo()"
+        >
+          Visualizar
+        </button>
+        <button
+          matButton="outlined"
+          type="button"
+          aria-label="Incluir anexo"
+          [disabled]="form.disabled"
+          (click)="seletorArquivo.click()"
+        >
+          Incluir
+        </button>
+        <button
+          matButton="outlined"
+          type="button"
+          aria-label="Excluir anexo"
+          [disabled]="form.disabled || anexoSelecionado() === null"
+          (click)="excluirAnexo()"
+        >
+          Excluir
+        </button>
+      </div>
+    </fieldset>
   </form>
 
   <section class="lancamentos" aria-labelledby="titulo-lancamentos">

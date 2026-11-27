@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { DadosLancamento, Lancamento } from '../models/lancamento';
+import { Anexo, DadosLancamento, Lancamento } from '../models/lancamento';
 import { LancamentosApi } from './lancamentos-api';
 import { BancoEmMemoria } from './mock/banco-em-memoria';
 import { CONTAS_CORRENTES, USUARIO_LOGADO } from './mock/cadastros.mock';
@@ -26,6 +26,7 @@ export class LancamentosApiMock implements LancamentosApi {
       }
       const lancamento: Lancamento = {
         ...dados,
+        anexos: comUsuario(dados.anexos),
         id: this.banco.novoIdLancamento(),
         loteId: loteId ?? this.criarLote(),
         titular,
@@ -43,7 +44,12 @@ export class LancamentosApiMock implements LancamentosApi {
       const atual = this.buscar(id);
       const titular = this.validar(dados);
       this.exigirLoteAberto(atual.loteId);
-      const alterado: Lancamento = { ...atual, ...dados, titular };
+      const alterado: Lancamento = {
+        ...atual,
+        ...dados,
+        anexos: comUsuario(dados.anexos),
+        titular,
+      };
       this.banco.lancamentos = this.banco.lancamentos.map((item) =>
         item.id === id ? alterado : item,
       );
@@ -109,4 +115,9 @@ export class LancamentosApiMock implements LancamentosApi {
     ];
     return id;
   }
+}
+
+/** IL-10: anexos novos chegam sem usuário; o servidor registra quem gravou. */
+function comUsuario(anexos: readonly Anexo[]): readonly Anexo[] {
+  return anexos.map((anexo) => (anexo.usuario ? anexo : { ...anexo, usuario: USUARIO_LOGADO }));
 }

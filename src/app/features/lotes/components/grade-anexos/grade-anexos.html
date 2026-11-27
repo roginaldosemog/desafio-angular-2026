@@ -1,0 +1,54 @@
+<div class="area-rolavel" role="region" aria-label="Anexos" tabindex="0">
+  <mat-radio-group
+    aria-label="Anexo"
+    [value]="selecionado()"
+    (change)="selecionado.set($event.value)"
+  >
+    <table mat-table class="tabela" [dataSource]="anexos()">
+      <ng-container matColumnDef="selecao">
+        <th mat-header-cell *matHeaderCellDef class="coluna-selecao">
+          <span class="somente-leitor">Seleção</span>
+        </th>
+        <td mat-cell *matCellDef="let anexo; let posicao = index" class="coluna-selecao">
+          <mat-radio-button
+            [value]="posicao"
+            [aria-label]="'Selecionar anexo ' + anexo.nomeArquivo"
+          />
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="nomeArquivo">
+        <th mat-header-cell *matHeaderCellDef>Nome Reduzido do Arquivo</th>
+        <td mat-cell *matCellDef="let anexo">{{ anexo.nomeArquivo }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="descricao">
+        <th mat-header-cell *matHeaderCellDef>Descrição</th>
+        <td mat-cell *matCellDef="let anexo">{{ anexo.descricao }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="dataHoraInclusao">
+        <th mat-header-cell *matHeaderCellDef>Data Inclusão</th>
+        <td mat-cell *matCellDef="let anexo" class="data">
+          {{ anexo.dataHoraInclusao | date: 'dd/MM/yyyy HH:mm' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="usuario">
+        <th mat-header-cell *matHeaderCellDef>ID Usuário</th>
+        <td mat-cell *matCellDef="let anexo">{{ anexo.usuario }}</td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="colunas" class="cabecalho"></tr>
+      <tr
+        mat-row
+        *matRowDef="let anexo; columns: colunas; let posicao = index"
+        class="linha"
+        [class.selecionada]="posicao === selecionado()"
+      ></tr>
+      <tr *matNoDataRow>
+        <td class="sem-registros" [attr.colspan]="colunas.length">Nenhum registro encontrado.</td>
+      </tr>
+    </table>
+  </mat-radio-group>
+</div>
