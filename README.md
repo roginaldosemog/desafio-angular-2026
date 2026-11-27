@@ -7,7 +7,7 @@ Requer Node.js 24.15+ ([.nvmrc](.nvmrc)).
 ```bash
 npm install
 npm start                    # http://localhost:4200
-npx ng test --watch=false    # testes
+npm run test:ci              # testes com cobertura
 npm run lint
 npm run build
 ```
@@ -26,3 +26,5 @@ Angular 22.3 · Angular Material 22.3 · TypeScript 6.0 · RxJS 7.8 · Vitest 5.
 - **Rotas** com carregamento sob demanda (`loadComponent`). A tela fica em `/contabil`.
 - **Testes com Vitest**, padrão do Angular 22, com API compatível com Jest.
 - **ESLint** com regras de acessibilidade e **Prettier**.
+- **CI no GitHub Actions:** formatação, lint, testes com cobertura e build a cada push e pull
+  request.
