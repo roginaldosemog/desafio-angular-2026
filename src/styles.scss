@@ -20,6 +20,8 @@ html {
   --app-linha-hover: #e0f4f1;
   --app-linha-selecionada: #cdeee9;
   --app-pagina-inativa: #eeeeee;
+  --app-barra-acoes: #ebecf1;
+  --app-botao-secundario: #f0f0f2;
   --app-border: #d6d6d6;
   --app-text: #344f54;
   --app-muted: #6b6b6b;
@@ -103,6 +105,20 @@ html {
     )
   );
 
+  // Diálogos na escala de texto da aplicação (o padrão do Material é 24 px no título).
+  @include mat.dialog-overrides(
+    (
+      container-shape: var(--app-raio-card),
+      subhead-color: var(--app-title),
+      subhead-size: 16px,
+      subhead-line-height: 24px,
+      subhead-weight: 600,
+      supporting-text-color: var(--app-text),
+      supporting-text-size: 13px,
+      supporting-text-line-height: 20px,
+    )
+  );
+
   // Botão primário: texto branco sobre o verde, contraste AA (DS-14).
   @include mat.button-overrides(
     (
@@ -110,6 +126,12 @@ html {
       filled-container-height: 32px,
       filled-label-text-size: 12px,
       filled-label-text-weight: 600,
+      // Contorno (Fechar, Cancelar, Tentar novamente): mesma altura e texto do primário (DS-14).
+      outlined-container-shape: var(--app-radius),
+      outlined-container-height: 32px,
+      outlined-label-text-size: 12px,
+      outlined-label-text-weight: 600,
+      outlined-outline-color: var(--app-primary),
     )
   );
 

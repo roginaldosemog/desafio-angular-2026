@@ -1,17 +1,25 @@
-import { Component, computed, inject, linkedSignal, signal } from '@angular/core';
-import { rxResource, toSignal } from '@angular/core/rxjs-interop';
+import { Component, computed, DestroyRef, inject, linkedSignal, signal } from '@angular/core';
+import { rxResource, takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { catchError, of, retry } from 'rxjs';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { catchError, filter, finalize, Observable, of, retry } from 'rxjs';
+import {
+  DadosDialogoMensagem,
+  DialogoMensagem,
+} from '../../../../shared/components/dialogo-mensagem/dialogo-mensagem';
 import { Paginacao } from '../../../../shared/components/paginacao/paginacao';
 import { Pagina } from '../../../../shared/models/pagina';
+import { BarraAcoes } from '../../components/barra-acoes/barra-acoes';
 import { FILTROS_PADRAO, FiltrosLotes } from '../../components/filtros-lotes/filtros-lotes';
 import { TabelaLotes } from '../../components/tabela-lotes/tabela-lotes';
 import { CadastrosApi } from '../../data-access/cadastros-api';
 import { LotesApi } from '../../data-access/lotes-api';
 import { FiltrosLote } from '../../models/filtros-lote';
 import { Lote } from '../../models/lote';
+import { AcaoLote } from '../../regras/acoes-lote';
 
 /** CL-13: 10 lotes por página. */
 const TAMANHO_PAGINA = 10;
@@ -19,10 +27,18 @@ const TAMANHO_PAGINA = 10;
 /** CL-09: uma nova tentativa automática, depois de uma pausa curta, antes de mostrar o erro. */
 const NOVA_TENTATIVA = { count: 1, delay: 300 };
 
+/** "Lote 3 enviado." ou "2 lotes enviados." */
+function mensagemDeSucesso(ids: readonly number[], participio: string): string {
+  return ids.length === 1
+    ? `Lote ${ids[0]} ${participio}.`
+    : `${ids.length} lotes ${participio.replace(/o$/, 'os')}.`;
+}
+
 /** Página da consulta (container): guarda o estado e o repassa aos componentes. */
 @Component({
   selector: 'app-consulta-lotes',
   imports: [
+    BarraAcoes,
     FiltrosLotes,
     MatButtonModule,
     MatIconModule,
@@ -36,6 +52,9 @@ const NOVA_TENTATIVA = { count: 1, delay: 300 };
 export class ConsultaLotes {
   private readonly cadastros = inject(CadastrosApi);
   private readonly lotesApi = inject(LotesApi);
+  private readonly dialogo = inject(MatDialog);
+  private readonly avisos = inject(MatSnackBar);
+  private readonly destroyRef = inject(DestroyRef);
 
   /** Se a lista falhar, os filtros continuam utilizáveis com os valores padrão. */
   protected readonly instituicoes = toSignal(
@@ -90,6 +109,12 @@ export class ConsultaLotes {
   });
 
   protected readonly selecionados = signal<ReadonlySet<number>>(new Set());
+  protected readonly lotesSelecionados = computed(() =>
+    this.lotes().filter((lote) => this.selecionados().has(lote.id)),
+  );
+
+  /** Uma ação em andamento desabilita a barra, para o mesmo pedido não ser feito duas vezes. */
+  protected readonly executando = signal(false);
 
   protected aoPesquisar(filtros: FiltrosLote): void {
     this.consulta.set({ filtros, pagina: 1 });
@@ -105,5 +130,99 @@ export class ConsultaLotes {
   protected aoTrocarPagina(pagina: number): void {
     this.consulta.update((consulta) => ({ ...consulta, pagina }));
     this.selecionados.set(new Set());
+  }
+
+  protected aoAcionar(acao: AcaoLote): void {
+    const lotes = this.lotesSelecionados();
+    const ids = lotes.map((lote) => lote.id);
+
+    switch (acao) {
+      case 'enviar':
+        this.executar(this.lotesApi.enviar(ids), mensagemDeSucesso(ids, 'enviado'), 'enviar');
+        break;
+      case 'confirmar':
+        this.executar(
+          this.lotesApi.confirmar(ids),
+          mensagemDeSucesso(ids, 'confirmado'),
+          'confirmar',
+        );
+        break;
+      case 'excluir':
+        this.confirmarExclusao(lotes[0]);
+        break;
+      case 'justificativa':
+        this.abrirDialogo({
+          titulo: `Justificativa do lote ${lotes[0].id}`,
+          mensagem: lotes[0].justificativa ?? '',
+        });
+        break;
+      case 'incluir':
+      case 'alterar':
+      case 'visualizar':
+        // Abrem o modal de lançamentos (CL-15, CL-16, CL-18), nos próximos passos.
+        break;
+    }
+  }
+
+  private confirmarExclusao(lote: Lote): void {
+    this.abrirDialogo({
+      titulo: 'Excluir lote',
+      mensagem: `Excluir o lote ${lote.id}? Esta ação não pode ser desfeita.`,
+      confirmar: 'Excluir',
+    })
+      .afterClosed()
+      .pipe(filter(Boolean))
+      .subscribe(() =>
+        this.executar(
+          this.lotesApi.excluir(lote.id),
+          mensagemDeSucesso([lote.id], 'excluído'),
+          'excluir',
+        ),
+      );
+  }
+
+  private abrirDialogo(dados: DadosDialogoMensagem) {
+    return this.dialogo.open<DialogoMensagem, DadosDialogoMensagem, boolean>(DialogoMensagem, {
+      data: dados,
+      width: '420px',
+    });
+  }
+
+  /**
+   * Executa uma ação e, se der certo, avisa, limpa a seleção e refaz a pesquisa (CL-22). Se
+   * falhar, avisa e mantém a seleção para o usuário tentar de novo. Ações que alteram dados não
+   * têm nova tentativa automática: repetir um envio sem saber se o primeiro chegou é arriscado.
+   */
+  private executar(operacao: Observable<void>, sucesso: string, verbo: string): void {
+    const afetados = this.selecionados().size;
+    this.executando.set(true);
+    operacao
+      .pipe(
+        finalize(() => this.executando.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.avisar(sucesso);
+          this.selecionados.set(new Set());
+          this.refazerPesquisa(afetados);
+        },
+        error: () => this.avisar(`Não foi possível ${verbo} os lotes.`),
+      });
+  }
+
+  /** Se a ação afetou todos os lotes da página, ela pode ter ficado vazia: volta uma página. */
+  private refazerPesquisa(afetados: number): void {
+    const { pagina } = this.consulta();
+    if (afetados === this.lotes().length && pagina > 1) {
+      this.consulta.update((consulta) => ({ ...consulta, pagina: pagina - 1 }));
+    } else {
+      this.resultado.reload();
+    }
+  }
+
+  /** DS-24: aviso no rodapé, anunciado ao leitor de tela pelo próprio MatSnackBar. */
+  private avisar(mensagem: string): void {
+    this.avisos.open(mensagem, 'Fechar', { duration: 5000 });
   }
 }

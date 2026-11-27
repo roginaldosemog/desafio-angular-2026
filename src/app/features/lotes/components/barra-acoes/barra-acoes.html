@@ -1,0 +1,13 @@
+<div class="barra" role="group" aria-label="Ações dos lotes">
+  @for (botao of botoes; track botao.acao) {
+    <button
+      type="button"
+      class="botao"
+      [class.principal]="botao.acao === 'incluir'"
+      [disabled]="ocupada() || !habilitadas()[botao.acao]"
+      (click)="acao.emit(botao.acao)"
+    >
+      {{ botao.rotulo }}
+    </button>
+  }
+</div>

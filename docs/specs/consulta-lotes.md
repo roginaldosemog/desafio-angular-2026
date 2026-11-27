@@ -63,7 +63,9 @@ comportamento visual em [design.md](design.md).
 - **CL-21** Visualizar Justificativa mostra o texto da justificativa. Exige exatamente um lote
   selecionado, com justificativa.
 - **CL-22** Depois de uma ação concluída, a pesquisa é refeita com os mesmos filtros e uma
-  mensagem confirma o resultado. A Data/Hora Situação Lote registra o momento da mudança.
+  mensagem confirma o resultado. A Data/Hora Situação Lote registra o momento da mudança. Se a
+  página atual ficar vazia, a tela volta para a anterior. Se a ação falhar, uma mensagem avisa e a
+  seleção é mantida.
 
 ## Interpretações
 
@@ -76,6 +78,8 @@ O enunciado não define estes pontos; a escolha está registrada aqui.
   hora.
 - **Seleção:** vale só para a página atual, para o usuário não agir sobre lotes que não está vendo.
 - **Erro simulado:** pela URL, para poder ser demonstrado sem alterar código.
+- **Tudo ou nada:** Enviar e Confirmar validam a situação de todos os lotes antes de alterar
+  qualquer um; se um estiver fora da situação, nenhum é alterado.
 
 ## Fora do escopo
 

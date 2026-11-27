@@ -1,10 +1,17 @@
 import { inject, Injectable, InjectionToken } from '@angular/core';
 import { Router } from '@angular/router';
 import { delay, map, Observable, of } from 'rxjs';
+import { paraDataHoraIso } from '../../../../shared/datas/datas-pt-br';
+import { DataHoraIso } from '../../../../shared/models/datas';
 
 /** Tempo de resposta simulado. Os testes o substituem para não depender de relógio. */
 export const ATRASO_SIMULADO_MS = new InjectionToken<number>('ATRASO_SIMULADO_MS', {
   factory: () => 600,
+});
+
+/** Hora do servidor simulado. Os testes a fixam para o resultado ser previsível. */
+export const RELOGIO_SIMULADO = new InjectionToken<() => Date>('RELOGIO_SIMULADO', {
+  factory: () => () => new Date(),
 });
 
 /** Com `?simularErro=true` na URL, o servidor simulado responde com erro. */
@@ -15,6 +22,12 @@ export const PARAMETRO_SIMULAR_ERRO = 'simularErro';
 export class ServidorSimulado {
   private readonly router = inject(Router);
   private readonly atrasoMs = inject(ATRASO_SIMULADO_MS);
+  private readonly relogio = inject(RELOGIO_SIMULADO);
+
+  /** Data e hora atuais do servidor, no formato do modelo. */
+  agora(): DataHoraIso {
+    return paraDataHoraIso(this.relogio());
+  }
 
   /**
    * Espera o atraso e só então processa ou falha, como um servidor. A decisão é tomada a cada

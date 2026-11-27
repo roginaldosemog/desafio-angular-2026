@@ -2,7 +2,7 @@ import { LOCALE_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { DateAdapter } from '@angular/material/core';
 import { MatDatepickerIntl } from '@angular/material/datepicker';
-import { paraDataIso, provideDatasPtBr } from './datas-pt-br';
+import { paraDataHoraIso, paraDataIso, provideDatasPtBr } from './datas-pt-br';
 
 describe('Datas pt-BR', () => {
   let adaptador: DateAdapter<Date>;
@@ -53,6 +53,12 @@ describe('Datas pt-BR', () => {
 
   it('traduz os textos do calendário lidos pelo leitor de tela', () => {
     expect(TestBed.inject(MatDatepickerIntl).openCalendarLabel).toBe('Abrir calendário');
+  });
+
+  describe('paraDataHoraIso', () => {
+    it('CL-22: converte para AAAA-MM-DDThh:mm:ss na hora local', () => {
+      expect(paraDataHoraIso(new Date(2026, 4, 4, 9, 5, 7))).toBe('2026-05-04T09:05:07');
+    });
   });
 
   describe('paraDataIso', () => {

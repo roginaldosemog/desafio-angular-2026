@@ -6,7 +6,7 @@ import {
   NativeDateAdapter,
 } from '@angular/material/core';
 import { MatDatepickerIntl } from '@angular/material/datepicker';
-import { DataIso } from '../models/datas';
+import { DataHoraIso, DataIso } from '../models/datas';
 
 const DD_MM_AAAA = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
 
@@ -65,4 +65,13 @@ export function paraDataIso(data: Date): DataIso {
   const mes = String(data.getMonth() + 1).padStart(2, '0');
   const dia = String(data.getDate()).padStart(2, '0');
   return `${data.getFullYear()}-${mes}-${dia}` as DataIso;
+}
+
+/** Instante → `AAAA-MM-DDThh:mm:ss`, na hora local. */
+export function paraDataHoraIso(instante: Date): DataHoraIso {
+  const doisDigitos = (numero: number) => String(numero).padStart(2, '0');
+  const hora = [instante.getHours(), instante.getMinutes(), instante.getSeconds()]
+    .map(doisDigitos)
+    .join(':');
+  return `${paraDataIso(instante)}T${hora}` as DataHoraIso;
 }

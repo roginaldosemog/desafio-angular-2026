@@ -5,8 +5,11 @@ import { LOCALE_ID } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatButtonHarness } from '@angular/material/button/testing';
 import { MatCheckboxHarness } from '@angular/material/checkbox/testing';
+import { MATERIAL_ANIMATIONS } from '@angular/material/core';
+import { MatDialogHarness } from '@angular/material/dialog/testing';
 import { MatInputHarness } from '@angular/material/input/testing';
 import { MatSelectHarness } from '@angular/material/select/testing';
+import { MatSnackBarHarness } from '@angular/material/snack-bar/testing';
 import { MatTableHarness } from '@angular/material/table/testing';
 import { defer, Observable, of, Subject, throwError } from 'rxjs';
 import { provideDatasPtBr } from '../../../../shared/datas/datas-pt-br';
@@ -35,6 +38,9 @@ describe('ConsultaLotes', () => {
   let fixture: ComponentFixture<ConsultaLotes>;
   let loader: HarnessLoader;
   let pesquisar: ReturnType<typeof vi.fn<LotesApi['pesquisar']>>;
+  let enviar: ReturnType<typeof vi.fn<LotesApi['enviar']>>;
+  let confirmar: ReturnType<typeof vi.fn<LotesApi['confirmar']>>;
+  let excluir: ReturnType<typeof vi.fn<LotesApi['excluir']>>;
 
   async function criar(
     opcoes: {
@@ -42,6 +48,7 @@ describe('ConsultaLotes', () => {
       lotes?: readonly Lote[];
       total?: number;
       pesquisar?: LotesApi['pesquisar'];
+      enviar?: LotesApi['enviar'];
       /** false quando a resposta fica pendente: o whenStable esperaria por ela. */
       esperarEstabilizar?: boolean;
     } = {},
@@ -52,13 +59,21 @@ describe('ConsultaLotes', () => {
     pesquisar = vi.fn<LotesApi['pesquisar']>(
       opcoes.pesquisar ?? (() => of(pagina(opcoes.lotes ?? [], opcoes.total))),
     );
+    enviar = vi.fn<LotesApi['enviar']>(opcoes.enviar ?? (() => of(undefined)));
+    confirmar = vi.fn<LotesApi['confirmar']>(() => of(undefined));
+    excluir = vi.fn<LotesApi['excluir']>(() => of(undefined));
     TestBed.configureTestingModule({
       imports: [ConsultaLotes],
       providers: [
         { provide: LOCALE_ID, useValue: 'pt-BR' },
+        // Sem animações, o diálogo fecha na hora e o teste não depende de tempo.
+        { provide: MATERIAL_ANIMATIONS, useValue: { animationsDisabled: true } },
         provideDatasPtBr(),
         { provide: CadastrosApi, useValue: cadastros },
-        { provide: LotesApi, useValue: { pesquisar } satisfies LotesApi },
+        {
+          provide: LotesApi,
+          useValue: { pesquisar, enviar, confirmar, excluir } satisfies LotesApi,
+        },
       ],
     });
     fixture = TestBed.createComponent(ConsultaLotes);
@@ -252,6 +267,131 @@ describe('ConsultaLotes', () => {
         (celula: Element) => celula.textContent?.trim(),
       );
       expect(ids).toEqual(['2']);
+    });
+  });
+
+  describe('ações', () => {
+    const LOTES = [
+      criarLote({ id: 1, situacao: 'ABERTO' }),
+      criarLote({ id: 2, situacao: 'ABERTO' }),
+      criarLote({ id: 3, situacao: 'ENVIADO' }),
+      criarLote({ id: 4, situacao: 'ABERTO', justificativa: 'Reenviar o comprovante.' }),
+    ];
+    const raiz = () => TestbedHarnessEnvironment.documentRootLoader(fixture);
+
+    /** Marca os lotes pelo ID; as caixas seguem a ordem das linhas, depois a do cabeçalho. */
+    async function selecionar(...ids: number[]) {
+      const caixas = await loader.getAllHarnesses(MatCheckboxHarness);
+      for (const id of ids) {
+        await caixas[LOTES.findIndex((item) => item.id === id) + 1].check();
+      }
+    }
+
+    async function acionar(texto: string) {
+      const botao = [...fixture.nativeElement.querySelectorAll('.barra-acoes button')].find(
+        (item: HTMLButtonElement) => item.textContent?.trim() === texto,
+      ) as HTMLButtonElement;
+      botao.click();
+      await fixture.whenStable();
+    }
+
+    const mensagem = async () => (await raiz().getHarness(MatSnackBarHarness)).getMessage();
+    const marcadas = async () => {
+      const caixas = await loader.getAllHarnesses(MatCheckboxHarness);
+      return (await Promise.all(caixas.map((caixa) => caixa.isChecked()))).filter(Boolean).length;
+    };
+
+    it('CL-19, CL-22: Enviar envia os selecionados, avisa, refaz a pesquisa e limpa a seleção', async () => {
+      await criar({ lotes: LOTES });
+      await selecionar(1, 2);
+
+      await acionar('Enviar');
+
+      expect(enviar).toHaveBeenCalledWith([1, 2]);
+      expect(await mensagem()).toBe('2 lotes enviados.');
+      expect(pesquisar).toHaveBeenCalledTimes(2);
+      expect(await marcadas()).toBe(0);
+    });
+
+    it('CL-20: Confirmar confirma o lote enviado', async () => {
+      await criar({ lotes: LOTES });
+      await selecionar(3);
+
+      await acionar('Confirmar');
+
+      expect(confirmar).toHaveBeenCalledWith([3]);
+      expect(await mensagem()).toBe('Lote 3 confirmado.');
+    });
+
+    it('CL-17: Excluir pede confirmação; cancelar não exclui', async () => {
+      await criar({ lotes: LOTES });
+      await selecionar(1);
+
+      await acionar('Excluir');
+      const dialogo = await raiz().getHarness(MatDialogHarness);
+      expect(await dialogo.getContentText()).toContain('Excluir o lote 1?');
+      await (await dialogo.getHarness(MatButtonHarness.with({ text: 'Cancelar' }))).click();
+
+      expect(excluir).not.toHaveBeenCalled();
+    });
+
+    it('CL-17, CL-22: Excluir confirmado remove o lote e avisa', async () => {
+      await criar({ lotes: LOTES });
+      await selecionar(1);
+
+      await acionar('Excluir');
+      const dialogo = await raiz().getHarness(MatDialogHarness);
+      await (await dialogo.getHarness(MatButtonHarness.with({ text: 'Excluir' }))).click();
+      await fixture.whenStable();
+
+      expect(excluir).toHaveBeenCalledWith(1);
+      expect(await mensagem()).toBe('Lote 1 excluído.');
+    });
+
+    it('CL-21: Visualizar Justificativa mostra o texto num diálogo', async () => {
+      await criar({ lotes: LOTES });
+      await selecionar(4);
+
+      await acionar('Visualizar Justificativa');
+
+      const dialogo = await raiz().getHarness(MatDialogHarness);
+      expect(await dialogo.getTitleText()).toBe('Justificativa do lote 4');
+      expect(await dialogo.getContentText()).toContain('Reenviar o comprovante.');
+    });
+
+    it('CL-22: se a ação esvazia a página atual, volta para a anterior', async () => {
+      await criar({
+        pesquisar: (_filtros, numero) =>
+          of(
+            numero === 1
+              ? pagina(lotesDe(1, 10), 11)
+              : { ...pagina([criarLote({ id: 11 })], 11), pagina: 2 },
+          ),
+      });
+      (
+        fixture.nativeElement.querySelector('button[aria-label="Página 2"]') as HTMLButtonElement
+      ).click();
+      await fixture.whenStable();
+      const [, unico] = await loader.getAllHarnesses(MatCheckboxHarness);
+      await unico.check();
+
+      await acionar('Excluir');
+      const dialogo = await raiz().getHarness(MatDialogHarness);
+      await (await dialogo.getHarness(MatButtonHarness.with({ text: 'Excluir' }))).click();
+      await fixture.whenStable();
+
+      expect(excluir).toHaveBeenCalledWith(11);
+      expect(pesquisar).toHaveBeenLastCalledWith(FILTROS_PADRAO, 1, 10);
+    });
+
+    it('se a ação falhar, avisa e mantém a seleção para tentar de novo', async () => {
+      await criar({ lotes: LOTES, enviar: () => throwError(() => new Error('falha')) });
+      await selecionar(1);
+
+      await acionar('Enviar');
+
+      expect(await mensagem()).toBe('Não foi possível enviar os lotes.');
+      expect(await marcadas()).toBe(1);
     });
   });
 });

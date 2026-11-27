@@ -1,6 +1,13 @@
 <section class="card" aria-label="Consulta de Lotes">
   <app-filtros-lotes [instituicoes]="instituicoes()" (pesquisar)="aoPesquisar($event)" />
 
+  <app-barra-acoes
+    class="barra-acoes"
+    [selecionados]="lotesSelecionados()"
+    [ocupada]="executando()"
+    (acao)="aoAcionar($event)"
+  />
+
   <div class="resultados" [attr.aria-busy]="carregando()">
     <!-- Espaço fixo para a barra: ela aparece e some sem empurrar a tabela (DS-18). -->
     <div class="barra-carregamento">

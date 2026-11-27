@@ -1,0 +1,51 @@
+// Regras DS-13 e DS-14 de docs/specs/design.md.
+:host {
+  display: block;
+}
+
+.barra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-espaco-1);
+  padding: var(--app-espaco-1);
+  border-radius: var(--app-raio-painel);
+  background: var(--app-barra-acoes);
+}
+
+.botao {
+  height: 28px;
+  padding: 0 var(--app-espaco-3);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-botao-secundario);
+  color: var(--app-header);
+  // Caixa alta só no visual: o leitor de tela lê o texto normal, sem soletrar.
+  font: 600 11px / 1 var(--app-font);
+  text-transform: uppercase;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--app-surface);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--app-primary);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    color: var(--app-muted);
+    opacity: 0.6;
+    cursor: default;
+  }
+}
+
+.principal {
+  border-color: var(--app-primary);
+  background: var(--app-primary);
+  color: var(--app-surface);
+
+  &:hover:not(:disabled) {
+    background: var(--app-title);
+  }
+}

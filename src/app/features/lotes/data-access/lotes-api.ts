@@ -14,4 +14,13 @@ export abstract class LotesApi {
     pagina: number,
     tamanhoPagina: number,
   ): Observable<Pagina<Lote>>;
+
+  /** CL-19: Aberto → Enviado. Falha se algum lote não estiver Aberto. */
+  abstract enviar(ids: readonly number[]): Observable<void>;
+
+  /** CL-20: Enviado → Confirmado, registrando o aprovador. */
+  abstract confirmar(ids: readonly number[]): Observable<void>;
+
+  /** CL-17: remove um lote Aberto. */
+  abstract excluir(id: number): Observable<void>;
 }
