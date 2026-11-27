@@ -25,7 +25,10 @@ Angular 22.3 · Angular Material 22.3 · TypeScript 6.0 · RxJS 7.8 · Vitest 5.
 - **Fonte Asap e ícones Material Symbols** servidos localmente, sem CDN.
 - **Modelos imutáveis** (`readonly`), valores em centavos inteiros e datas no formato
   `AAAA-MM-DD` (tipo `DataIso`), sem fuso horário.
-- **Rotas** com carregamento sob demanda (`loadComponent`). A tela fica em `/contabil`.
+- **Rotas** com carregamento sob demanda (`loadChildren`). A tela fica em `/contabil`.
+- **Padrão repositório:** os componentes dependem de `LotesApi` (contrato). A implementação
+  simulada (`of` + `delay`) é fornecida na rota e pode ser trocada por HttpClient sem mexer nos
+  componentes. Erro simulado com `/contabil?simularErro=true`.
 - **Especificação primeiro (SDD):** critérios de aceite e regras de design em
   [docs/specs](docs/specs), citados no nome dos testes (`CL-01`, `IL-03`, `DS-09`...).
 - **Testes com Vitest**, padrão do Angular 22, com API compatível com Jest.

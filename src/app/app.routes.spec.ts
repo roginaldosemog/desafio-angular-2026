@@ -3,6 +3,8 @@ import { Title } from '@angular/platform-browser';
 import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { routes } from './app.routes';
+import { LotesApi } from './features/lotes/data-access/lotes-api';
+import { LotesApiMock } from './features/lotes/data-access/lotes-api-mock';
 import { ConsultaLotes } from './features/lotes/pages/consulta-lotes/consulta-lotes';
 
 describe('Rotas da aplicação', () => {
@@ -37,5 +39,13 @@ describe('Rotas da aplicação', () => {
     await harness.navigateByUrl('/rota-inexistente');
 
     expect(router.url).toBe('/contabil');
+  });
+
+  it('CL-06: fornece a API de lotes simulada para a tela de consulta', async () => {
+    await harness.navigateByUrl('/contabil');
+
+    const api = harness.routeDebugElement?.injector.get(LotesApi);
+
+    expect(api).toBeInstanceOf(LotesApiMock);
   });
 });
