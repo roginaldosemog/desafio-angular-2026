@@ -6,16 +6,18 @@ estrutura e proporção, não pixel perfect.
 
 ## Tokens
 
-| Uso                                          | Valor     | Token                           |
-| -------------------------------------------- | --------- | ------------------------------- |
-| Primária: botões, página ativa, De/Até, foco | `#007f78` | `--app-primary`                 |
-| Títulos                                      | `#00665f` | `--app-title`                   |
-| Cabeçalho de tabela, rótulos                 | `#002e37` | `--app-header`                  |
-| Linhas de tabela, item ativo do menu         | `#effaf8` | `--app-highlight`               |
-| Barra de ações                               | `#ebecf1` | `--app-barra-acoes` (novo)      |
-| Botão secundário                             | `#f0f0f2` | `--app-botao-secundario` (novo) |
-| Fundo da página                              | `#e8e8eb` | `--app-background`              |
-| Bordas                                       | `#d6d6d6` | `--app-border`                  |
+| Uso                                          | Valor     | Token                            |
+| -------------------------------------------- | --------- | -------------------------------- |
+| Primária: botões, página ativa, De/Até, foco | `#007f78` | `--app-primary`                  |
+| Títulos                                      | `#00665f` | `--app-title`                    |
+| Cabeçalho de tabela, rótulos                 | `#002e37` | `--app-header`                   |
+| Linhas de tabela, item ativo do menu         | `#effaf8` | `--app-highlight`                |
+| Linha da tabela com o mouse em cima          | `#e0f4f1` | `--app-linha-hover` (novo)       |
+| Linha da tabela selecionada                  | `#cdeee9` | `--app-linha-selecionada` (novo) |
+| Barra de ações                               | `#ebecf1` | `--app-barra-acoes` (novo)       |
+| Botão secundário                             | `#f0f0f2` | `--app-botao-secundario` (novo)  |
+| Fundo da página                              | `#e8e8eb` | `--app-background`               |
+| Bordas                                       | `#d6d6d6` | `--app-border`                   |
 
 - **Espaçamento:** escala de 4 px: 4, 8, 12, 16, 24, 32 e 48.
 - **Tipografia (Asap):** 11 px (auxiliar e erros), 12 px (base, rótulos, tabela, botões), 13 px

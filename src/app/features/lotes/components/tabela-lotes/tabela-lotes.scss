@@ -1,0 +1,90 @@
+// Regras DS-15 a DS-17 de docs/specs/design.md.
+@use '@angular/material' as mat;
+
+:host {
+  display: block;
+}
+
+.area-rolavel {
+  overflow-x: auto;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-raio-painel);
+
+  &:focus-visible {
+    outline: 2px solid var(--app-primary);
+    outline-offset: 2px;
+  }
+}
+
+.tabela {
+  width: 100%;
+
+  // Sem quebra de linha, cada coluna tem a largura do conteúdo; quando não cabe, a tabela rola
+  // dentro da área, e não a página.
+  th,
+  td {
+    white-space: nowrap;
+  }
+
+  @include mat.table-overrides(
+    (
+      background-color: var(--app-surface),
+      header-container-height: 40px,
+      header-headline-color: var(--app-surface),
+      header-headline-size: 12px,
+      header-headline-weight: 700,
+      row-item-container-height: 40px,
+      row-item-label-text-size: 12px,
+      row-item-outline-color: var(--app-border),
+    )
+  );
+}
+
+.cabecalho {
+  background: var(--app-header);
+
+  // Caixa de seleção clara sobre o cabeçalho escuro.
+  @include mat.checkbox-overrides(
+    (
+      unselected-icon-color: var(--app-surface),
+      unselected-hover-icon-color: var(--app-surface),
+      unselected-focus-icon-color: var(--app-surface),
+      selected-icon-color: var(--app-surface),
+      selected-hover-icon-color: var(--app-surface),
+      selected-focus-icon-color: var(--app-surface),
+      selected-checkmark-color: var(--app-header),
+    )
+  );
+}
+
+.linha {
+  background: var(--app-highlight);
+
+  &:hover {
+    background: var(--app-linha-hover);
+  }
+
+  &.selecionada {
+    background: var(--app-linha-selecionada);
+  }
+}
+
+.coluna-selecao {
+  width: 48px;
+  padding-right: 0;
+}
+
+.numero {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.data {
+  font-variant-numeric: tabular-nums;
+}
+
+.sem-registros {
+  padding: var(--app-espaco-6);
+  color: var(--app-muted);
+  text-align: center;
+}

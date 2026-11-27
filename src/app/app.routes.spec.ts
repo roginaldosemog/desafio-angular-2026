@@ -7,6 +7,7 @@ import { CadastrosApi } from './features/lotes/data-access/cadastros-api';
 import { CadastrosApiMock } from './features/lotes/data-access/cadastros-api-mock';
 import { LotesApi } from './features/lotes/data-access/lotes-api';
 import { LotesApiMock } from './features/lotes/data-access/lotes-api-mock';
+import { ATRASO_SIMULADO_MS } from './features/lotes/data-access/mock/servidor-simulado';
 import { ConsultaLotes } from './features/lotes/pages/consulta-lotes/consulta-lotes';
 
 describe('Rotas da aplicação', () => {
@@ -14,7 +15,10 @@ describe('Rotas da aplicação', () => {
   let router: Router;
 
   beforeEach(async () => {
-    TestBed.configureTestingModule({ providers: appConfig.providers });
+    // A configuração real da aplicação, sem o atraso de rede simulado.
+    TestBed.configureTestingModule({
+      providers: [...appConfig.providers, { provide: ATRASO_SIMULADO_MS, useValue: 0 }],
+    });
     harness = await RouterTestingHarness.create();
     router = TestBed.inject(Router);
   });

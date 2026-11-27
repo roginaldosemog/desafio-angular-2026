@@ -28,6 +28,10 @@ Angular 22.3 · Angular Material 22.3 · TypeScript 6.0 · RxJS 7.8 · Vitest 5.
 - **Datas em dd/mm/aaaa:** adaptador próprio, porque o nativo do Material lê no formato americano.
 - **Campo monetário e máscara de data próprios**, sem biblioteca de máscara: o monetário é um
   `ControlValueAccessor` preenchido da direita para a esquerda, com valor em centavos.
+- **Estado com signals:** a página guarda filtros, página e seleção em signals. A pesquisa usa
+  `rxResource` (estável no Angular 22), que descarta a resposta anterior; a seleção da tabela é
+  um `model()`.
+- **Pipes pt-BR:** `date`, `reais` (centavos → R$) e `rotuloSituacao`.
 - **Modelos imutáveis** (`readonly`), valores em centavos inteiros e datas no formato
   `AAAA-MM-DD` (tipo `DataIso`), sem fuso horário.
 - **Rotas** com carregamento sob demanda (`loadChildren`). A tela fica em `/contabil`.

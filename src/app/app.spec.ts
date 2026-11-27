@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { App } from './app';
 import { appConfig } from './app.config';
+import { ATRASO_SIMULADO_MS } from './features/lotes/data-access/mock/servidor-simulado';
 
 describe('App', () => {
   let elemento: HTMLElement;
@@ -9,7 +10,8 @@ describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: appConfig.providers,
+      // A configuração real da aplicação, sem o atraso de rede simulado.
+      providers: [...appConfig.providers, { provide: ATRASO_SIMULADO_MS, useValue: 0 }],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(App);
