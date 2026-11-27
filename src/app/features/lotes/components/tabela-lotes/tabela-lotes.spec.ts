@@ -156,4 +156,13 @@ describe('TabelaLotes', () => {
     expect(area.getAttribute('aria-label')).toBe('Lotes encontrados');
     expect(area.tabIndex).toBe(0);
   });
+
+  it('CL-11: enquanto carrega, a tabela vazia não diz que não há registros', async () => {
+    await criar([]);
+    fixture.componentRef.setInput('carregando', true);
+    await fixture.whenStable();
+
+    expect(fixture.nativeElement.textContent).toContain('Pesquisando lotes…');
+    expect(fixture.nativeElement.textContent).not.toContain('Nenhum registro encontrado.');
+  });
 });

@@ -39,7 +39,10 @@ Angular 22.3 · Angular Material 22.3 · TypeScript 6.0 · RxJS 7.8 · Vitest 5.
 - **Rotas** com carregamento sob demanda (`loadChildren`). A tela fica em `/contabil`.
 - **Padrão repositório:** os componentes dependem de `LotesApi` (contrato). A implementação
   simulada (`of` + `delay`) é fornecida na rota e pode ser trocada por HttpClient sem mexer nos
-  componentes. Erro simulado com `/contabil?simularErro=true`.
+  componentes.
+- **Pesquisa:** automática 400 ms depois da última alteração de filtro (`debounceTime`), imediata
+  no botão Pesquisar, com indicador de carregamento e uma nova tentativa automática (`retry`)
+  antes de mostrar o erro. Para ver o erro: `/contabil?simularErro=true`.
 - **Especificação primeiro (SDD):** critérios de aceite e regras de design em
   [docs/specs](docs/specs), citados no nome dos testes (`CL-01`, `IL-03`, `DS-09`...).
 - **Testes com Vitest**, padrão do Angular 22, com API compatível com Jest.

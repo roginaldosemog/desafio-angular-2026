@@ -10,6 +10,6 @@ export class CadastrosApiMock implements CadastrosApi {
   private readonly servidor = inject(ServidorSimulado);
 
   listarInstituicoes(): Observable<readonly Instituicao[]> {
-    return this.servidor.responder(() => INSTITUICOES);
+    return this.servidor.responder(() => INSTITUICOES, { podeFalhar: false });
   }
 }

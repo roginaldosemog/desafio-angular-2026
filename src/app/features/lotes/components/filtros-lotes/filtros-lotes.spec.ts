@@ -10,7 +10,7 @@ import { MatInputHarness } from '@angular/material/input/testing';
 import { MatSelectHarness } from '@angular/material/select/testing';
 import { provideDatasPtBr } from '../../../../shared/datas/datas-pt-br';
 import { FiltrosLote } from '../../models/filtros-lote';
-import { FILTROS_PADRAO, FiltrosLotes } from './filtros-lotes';
+import { ATRASO_PESQUISA_AUTOMATICA_MS, FILTROS_PADRAO, FiltrosLotes } from './filtros-lotes';
 
 const INSTITUICOES = [
   { codigo: '0001', nome: 'SICOOB' },
@@ -22,10 +22,19 @@ describe('FiltrosLotes', () => {
   let loader: HarnessLoader;
   let emitidos: FiltrosLote[];
 
-  beforeEach(async () => {
+  /**
+   * Nos testes do envio, a pesquisa automática fica fora do caminho (1 minuto de espera): uma
+   * pausa entre duas ações do teste não pode disparar uma pesquisa e torná-lo instável. Os testes
+   * do debounce, no fim do arquivo, usam o tempo real de 400 ms com relógio falso.
+   */
+  async function criar(atrasoPesquisaAutomaticaMs = 60_000) {
     TestBed.configureTestingModule({
       imports: [FiltrosLotes],
-      providers: [{ provide: LOCALE_ID, useValue: 'pt-BR' }, provideDatasPtBr()],
+      providers: [
+        { provide: LOCALE_ID, useValue: 'pt-BR' },
+        provideDatasPtBr(),
+        { provide: ATRASO_PESQUISA_AUTOMATICA_MS, useValue: atrasoPesquisaAutomaticaMs },
+      ],
     });
     fixture = TestBed.createComponent(FiltrosLotes);
     fixture.componentRef.setInput('instituicoes', INSTITUICOES);
@@ -33,7 +42,9 @@ describe('FiltrosLotes', () => {
     fixture.componentInstance.pesquisar.subscribe((filtros) => emitidos.push(filtros));
     loader = TestbedHarnessEnvironment.loader(fixture);
     await fixture.whenStable();
-  });
+  }
+
+  beforeEach(() => criar());
 
   const campo = (classe: string) =>
     loader.getHarness(MatInputHarness.with({ selector: `.${classe}` }));
@@ -181,5 +192,75 @@ describe('FiltrosLotes', () => {
       .map((id) => elemento.querySelector(`#${id}`)?.textContent?.trim());
 
     expect(nomes).toEqual(['ID Lote', 'De']);
+  });
+
+  describe('pesquisa automática', () => {
+    beforeEach(async () => {
+      TestBed.resetTestingModule();
+      await criar(400);
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    /** Simula o navegador: altera o texto do campo e dispara o evento `input`. */
+    function editar(classe: string, texto: string): void {
+      const elemento: HTMLInputElement = fixture.nativeElement.querySelector(`.${classe}`);
+      elemento.value = texto;
+      elemento.dispatchEvent(new Event('input'));
+    }
+
+    it('CL-07: pesquisa 400 ms depois da última alteração', () => {
+      editar('id-lote-de', '1');
+      vi.advanceTimersByTime(300);
+      editar('id-lote-de', '12');
+
+      vi.advanceTimersByTime(399);
+      expect(emitidos).toEqual([]);
+
+      vi.advanceTimersByTime(1);
+      expect(emitidos).toEqual([{ ...FILTROS_PADRAO, idLote: { de: 12, ate: null } }]);
+    });
+
+    it('CL-07: não pesquisa sozinho enquanto um filtro está inválido', () => {
+      editar('id-lote-de', '0');
+
+      vi.advanceTimersByTime(1000);
+
+      expect(emitidos).toEqual([]);
+    });
+
+    it('CL-07: não repete a pesquisa se o filtro volta ao valor já pesquisado', () => {
+      editar('id-lote-de', '5');
+      vi.advanceTimersByTime(400);
+      editar('id-lote-de', '56');
+      editar('id-lote-de', '5');
+
+      vi.advanceTimersByTime(400);
+
+      expect(emitidos).toHaveLength(1);
+    });
+
+    it('CL-06: o botão Pesquisar consulta na hora, sem esperar o debounce', () => {
+      editar('id-lote-de', '7');
+
+      fixture.nativeElement.querySelector('button[type=submit]').click();
+      expect(emitidos).toEqual([{ ...FILTROS_PADRAO, idLote: { de: 7, ate: null } }]);
+
+      // A automática, que estava esperando, não repete a pesquisa que o botão já fez.
+      vi.advanceTimersByTime(400);
+      expect(emitidos).toHaveLength(1);
+    });
+
+    it('CL-06: clicar em Pesquisar de novo com os mesmos filtros pesquisa de novo', () => {
+      const botao: HTMLButtonElement = fixture.nativeElement.querySelector('button[type=submit]');
+
+      botao.click();
+      botao.click();
+
+      expect(emitidos).toHaveLength(2);
+    });
   });
 });

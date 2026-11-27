@@ -60,4 +60,13 @@ describe('ServidorSimulado', () => {
 
     await expect(firstValueFrom(servidor.responder(() => 'ok'))).resolves.toBe('ok');
   });
+
+  it('CL-09: respostas marcadas como sem falha ignoram o ?simularErro=true', async () => {
+    const servidor = configurar();
+    await TestBed.inject(Router).navigateByUrl('/?simularErro=true');
+
+    const resposta = firstValueFrom(servidor.responder(() => 'ok', { podeFalhar: false }));
+
+    await expect(resposta).resolves.toBe('ok');
+  });
 });

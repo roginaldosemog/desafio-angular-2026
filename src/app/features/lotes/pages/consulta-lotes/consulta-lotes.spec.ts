@@ -8,7 +8,7 @@ import { MatCheckboxHarness } from '@angular/material/checkbox/testing';
 import { MatInputHarness } from '@angular/material/input/testing';
 import { MatSelectHarness } from '@angular/material/select/testing';
 import { MatTableHarness } from '@angular/material/table/testing';
-import { Observable, of, Subject, throwError } from 'rxjs';
+import { defer, Observable, of, Subject, throwError } from 'rxjs';
 import { provideDatasPtBr } from '../../../../shared/datas/datas-pt-br';
 import { Pagina } from '../../../../shared/models/pagina';
 import { FILTROS_PADRAO } from '../../components/filtros-lotes/filtros-lotes';
@@ -42,6 +42,8 @@ describe('ConsultaLotes', () => {
       lotes?: readonly Lote[];
       total?: number;
       pesquisar?: LotesApi['pesquisar'];
+      /** false quando a resposta fica pendente: o whenStable esperaria por ela. */
+      esperarEstabilizar?: boolean;
     } = {},
   ) {
     const cadastros: CadastrosApi = {
@@ -61,7 +63,11 @@ describe('ConsultaLotes', () => {
     });
     fixture = TestBed.createComponent(ConsultaLotes);
     loader = TestbedHarnessEnvironment.loader(fixture);
-    await fixture.whenStable();
+    if (opcoes.esperarEstabilizar === false) {
+      fixture.detectChanges();
+    } else {
+      await fixture.whenStable();
+    }
   }
 
   it('CL-04: mostra os filtros com as instituições do serviço de cadastros', async () => {
@@ -148,6 +154,104 @@ describe('ConsultaLotes', () => {
       segunda.complete();
       await fixture.whenStable();
       expect(linhas()).toHaveLength(8);
+    });
+  });
+
+  describe('carregamento e erro', () => {
+    const elemento = (seletor: string): HTMLElement | null =>
+      fixture.nativeElement.querySelector(seletor);
+    const anuncio = () => elemento('.anuncio')?.textContent?.trim();
+    const falha = () => throwError(() => new Error('Falha simulada.'));
+
+    /**
+     * O `retry` não chama `pesquisar()` de novo: ele se inscreve outra vez no mesmo Observable.
+     * Por isso o dublê usa `defer`, que decide a resposta a cada inscrição (como uma chamada HTTP),
+     * e conta as tentativas, não as chamadas.
+     */
+    let tentativas: number;
+    const respondendo = (resposta: (tentativa: number) => Observable<Pagina<Lote>>) => () =>
+      defer(() => resposta(++tentativas));
+
+    beforeEach(() => {
+      tentativas = 0;
+    });
+
+    it('CL-08: mostra e anuncia o carregamento enquanto pesquisa', async () => {
+      const resposta = new Subject<Pagina<Lote>>();
+      await criar({ pesquisar: () => resposta, esperarEstabilizar: false });
+
+      expect(elemento('mat-progress-bar')).toBeTruthy();
+      expect(elemento('.resultados')?.getAttribute('aria-busy')).toBe('true');
+      expect(anuncio()).toBe('Pesquisando lotes…');
+      expect(elemento('table')?.textContent).not.toContain('Nenhum registro encontrado.');
+
+      resposta.next(pagina(lotesDe(1, 10), 18));
+      resposta.complete();
+      await fixture.whenStable();
+
+      expect(elemento('mat-progress-bar')).toBeNull();
+      expect(elemento('.resultados')?.getAttribute('aria-busy')).toBe('false');
+      expect(anuncio()).toBe('18 lotes encontrados.');
+    });
+
+    it('CL-09: tenta de novo uma vez e, se falhar, mostra o erro com "Tentar novamente"', async () => {
+      await criar({ pesquisar: respondendo(falha) });
+
+      expect(tentativas).toBe(2);
+      expect(elemento('[role=alert]')?.textContent).toContain(
+        'Não foi possível pesquisar os lotes.',
+      );
+      expect(
+        await loader.getHarness(MatButtonHarness.with({ text: 'Tentar novamente' })),
+      ).toBeTruthy();
+      expect(elemento('table')).toBeNull();
+    });
+
+    it('CL-09: uma falha passageira não chega ao usuário', async () => {
+      await criar({
+        pesquisar: respondendo((tentativa) =>
+          tentativa === 1 ? falha() : of(pagina(lotesDe(1, 3))),
+        ),
+      });
+
+      expect(tentativas).toBe(2);
+      expect(elemento('[role=alert]')).toBeNull();
+      expect(fixture.nativeElement.querySelectorAll('tr.mat-mdc-row')).toHaveLength(3);
+    });
+
+    it('CL-09: "Tentar novamente" refaz a pesquisa e mostra os lotes', async () => {
+      await criar({
+        pesquisar: respondendo((tentativa) =>
+          tentativa <= 2 ? falha() : of(pagina(lotesDe(1, 3))),
+        ),
+      });
+
+      await (await loader.getHarness(MatButtonHarness.with({ text: 'Tentar novamente' }))).click();
+      await fixture.whenStable();
+
+      expect(elemento('[role=alert]')).toBeNull();
+      expect(fixture.nativeElement.querySelectorAll('tr.mat-mdc-row')).toHaveLength(3);
+    });
+
+    it('CL-07: descarta a resposta de uma pesquisa antiga que chega atrasada', async () => {
+      const antiga = new Subject<Pagina<Lote>>();
+      const nova = new Subject<Pagina<Lote>>();
+      const respostas = [antiga, nova];
+      await criar({ pesquisar: () => respostas.shift() ?? nova, esperarEstabilizar: false });
+
+      // Uma segunda pesquisa começa antes de a primeira responder.
+      elemento('button[type=submit]')?.click();
+      fixture.detectChanges();
+      nova.next(pagina([criarLote({ id: 2 })]));
+      nova.complete();
+      antiga.next(pagina([criarLote({ id: 1 })]));
+      antiga.complete();
+      await fixture.whenStable();
+
+      const ids = [...fixture.nativeElement.querySelectorAll('tr.mat-mdc-row td:nth-child(2)')].map(
+        (celula: Element) => celula.textContent?.trim(),
+      );
+      expect(ids).toEqual(['2']);
     });
   });
 });

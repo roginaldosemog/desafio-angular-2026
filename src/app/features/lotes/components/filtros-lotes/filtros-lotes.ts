@@ -1,4 +1,5 @@
-import { Component, computed, inject, input, output } from '@angular/core';
+import { Component, computed, inject, InjectionToken, input } from '@angular/core';
+import { outputFromObservable } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
@@ -6,6 +7,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { debounceTime, filter, map, merge, share, Subject, tap } from 'rxjs';
 import { paraDataIso } from '../../../../shared/datas/datas-pt-br';
 import { CampoMonetario } from '../../../../shared/directives/campo-monetario';
 import { MascaraData } from '../../../../shared/directives/mascara-data';
@@ -23,6 +25,14 @@ export const FILTROS_PADRAO: FiltrosLote = {
   valorCentavos: { de: null, ate: null },
   dataEntrada: { de: null, ate: null },
 };
+
+/** Espera da pesquisa automática depois da última alteração (CL-07). Os testes a substituem. */
+export const ATRASO_PESQUISA_AUTOMATICA_MS = new InjectionToken<number>(
+  'ATRASO_PESQUISA_AUTOMATICA_MS',
+  { factory: () => 400 },
+);
+
+const mesmosFiltros = (a: FiltrosLote, b: FiltrosLote) => JSON.stringify(a) === JSON.stringify(b);
 
 /**
  * No mat-select, opção com valor `null` limpa a seleção e aparece vazia. Por isso "Todas" usa
@@ -52,7 +62,6 @@ const INTEIRO_POSITIVO = /^[1-9]\d*$/;
 })
 export class FiltrosLotes {
   readonly instituicoes = input.required<readonly Instituicao[]>();
-  readonly pesquisar = output<FiltrosLote>();
 
   protected readonly todas = TODAS;
   protected readonly situacoes = SITUACOES_LOTE;
@@ -94,12 +103,40 @@ export class FiltrosLotes {
     ),
   });
 
+  /** Cliques em Pesquisar com o formulário válido. */
+  private readonly envios = new Subject<void>();
+
+  /** A última pesquisa pedida. Ao abrir, a página pesquisa os filtros padrão. */
+  private ultimaPesquisa = FILTROS_PADRAO;
+
+  /**
+   * Pesquisas pedidas pelo usuário, por dois caminhos:
+   * - Pesquisar (CL-06): na hora, mesmo com os filtros iguais, para atualizar os dados;
+   * - alteração de filtro (CL-07): 400 ms depois da última alteração (debounce), só com os
+   *   filtros válidos e se for diferente da última pesquisa, feita por qualquer dos caminhos.
+   * O `share()` garante um único fluxo, mesmo com mais de um inscrito.
+   */
+  readonly pesquisar = outputFromObservable(
+    merge(
+      this.envios.pipe(map(() => this.paraFiltros())),
+      this.form.valueChanges.pipe(
+        debounceTime(inject(ATRASO_PESQUISA_AUTOMATICA_MS)),
+        filter(() => this.form.valid),
+        map(() => this.paraFiltros()),
+        filter((filtros) => !mesmosFiltros(filtros, this.ultimaPesquisa)),
+      ),
+    ).pipe(
+      tap((filtros) => (this.ultimaPesquisa = filtros)),
+      share(),
+    ),
+  );
+
   protected aoPesquisar(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
-    this.pesquisar.emit(this.paraFiltros());
+    this.envios.next();
   }
 
   /** Converte os valores da tela (texto, Date) para o modelo (número, `AAAA-MM-DD`). */

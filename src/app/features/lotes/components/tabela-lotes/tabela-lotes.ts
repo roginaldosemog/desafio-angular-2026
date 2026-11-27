@@ -18,6 +18,8 @@ import { RotuloSituacaoPipe } from '../../pipes/rotulo-situacao';
 })
 export class TabelaLotes {
   readonly lotes = input.required<readonly Lote[]>();
+  /** Enquanto carrega, a tabela vazia não afirma que não há registros (CL-11). */
+  readonly carregando = input(false);
   readonly selecionados = model<ReadonlySet<number>>(new Set());
 
   protected readonly colunas = [

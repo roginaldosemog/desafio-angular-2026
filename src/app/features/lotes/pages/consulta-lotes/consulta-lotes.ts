@@ -1,6 +1,9 @@
 import { Component, computed, inject, linkedSignal, signal } from '@angular/core';
 import { rxResource, toSignal } from '@angular/core/rxjs-interop';
-import { catchError, of } from 'rxjs';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { catchError, of, retry } from 'rxjs';
 import { Paginacao } from '../../../../shared/components/paginacao/paginacao';
 import { Pagina } from '../../../../shared/models/pagina';
 import { FILTROS_PADRAO, FiltrosLotes } from '../../components/filtros-lotes/filtros-lotes';
@@ -13,10 +16,20 @@ import { Lote } from '../../models/lote';
 /** CL-13: 10 lotes por página. */
 const TAMANHO_PAGINA = 10;
 
+/** CL-09: uma nova tentativa automática, depois de uma pausa curta, antes de mostrar o erro. */
+const NOVA_TENTATIVA = { count: 1, delay: 300 };
+
 /** Página da consulta (container): guarda o estado e o repassa aos componentes. */
 @Component({
   selector: 'app-consulta-lotes',
-  imports: [FiltrosLotes, Paginacao, TabelaLotes],
+  imports: [
+    FiltrosLotes,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressBarModule,
+    Paginacao,
+    TabelaLotes,
+  ],
   templateUrl: './consulta-lotes.html',
   styleUrl: './consulta-lotes.scss',
 })
@@ -34,12 +47,15 @@ export class ConsultaLotes {
   private readonly consulta = signal({ filtros: FILTROS_PADRAO, pagina: 1 });
 
   /**
-   * Refaz a pesquisa sempre que a consulta muda e descarta a resposta anterior ainda pendente.
-   * Também expõe carregamento, erro e `reload()`, usados nos próximos passos.
+   * Refaz a pesquisa sempre que a consulta muda e descarta a resposta anterior ainda pendente
+   * (CL-07). Expõe carregamento, erro e `reload()`.
    */
   private readonly resultado = rxResource({
     params: () => this.consulta(),
-    stream: ({ params }) => this.lotesApi.pesquisar(params.filtros, params.pagina, TAMANHO_PAGINA),
+    stream: ({ params }) =>
+      this.lotesApi
+        .pesquisar(params.filtros, params.pagina, TAMANHO_PAGINA)
+        .pipe(retry(NOVA_TENTATIVA)),
   });
 
   /**
@@ -56,11 +72,33 @@ export class ConsultaLotes {
   protected readonly paginaAtual = computed(() => this.consulta().pagina);
   protected readonly tamanhoPagina = TAMANHO_PAGINA;
 
+  protected readonly carregando = this.resultado.isLoading;
+  protected readonly falhou = computed(() => this.resultado.status() === 'error');
+
+  /** Texto lido pelo leitor de tela quando a pesquisa começa e termina (CL-08). */
+  protected readonly anuncio = computed(() => {
+    if (this.carregando()) {
+      return 'Pesquisando lotes…';
+    }
+    if (this.falhou()) {
+      return '';
+    }
+    const total = this.total();
+    return total === 0
+      ? 'Nenhum lote encontrado.'
+      : `${total} ${total === 1 ? 'lote encontrado' : 'lotes encontrados'}.`;
+  });
+
   protected readonly selecionados = signal<ReadonlySet<number>>(new Set());
 
   protected aoPesquisar(filtros: FiltrosLote): void {
     this.consulta.set({ filtros, pagina: 1 });
     this.selecionados.set(new Set());
+  }
+
+  /** CL-09: nova inscrição no mesmo pedido; o servidor simulado relê a URL. */
+  protected tentarNovamente(): void {
+    this.resultado.reload();
   }
 
   /** CL-12: a seleção vale só para a página atual. */

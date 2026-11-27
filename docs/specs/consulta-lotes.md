@@ -26,20 +26,23 @@ comportamento visual em [design.md](design.md).
 
 - **CL-06** Ao abrir a tela, a pesquisa é feita com os filtros padrão. O botão Pesquisar
   consulta com os filtros informados.
-- **CL-07** Ao alterar um filtro, a pesquisa é refeita automaticamente 400 ms depois da última
-  alteração (debounce). Se uma pesquisa nova começa antes da anterior terminar, a resposta antiga
-  é descartada.
+- **CL-07** Ao alterar um filtro, se todos os filtros forem válidos, a pesquisa é refeita
+  automaticamente 400 ms depois da última alteração (debounce). Se uma pesquisa nova começa antes
+  da anterior terminar, a resposta antiga é descartada.
 - **CL-08** Durante a pesquisa, um indicador de carregamento fica visível e é anunciado a
   leitores de tela.
-- **CL-09** Se a pesquisa falha, a tela mostra uma mensagem de erro e o botão "Tentar novamente".
-  A falha pode ser simulada abrindo a tela com `?simularErro=true`.
+- **CL-09** Se a pesquisa falha, ela é tentada mais uma vez automaticamente. Se falhar de novo, a
+  tela mostra uma mensagem de erro e o botão "Tentar novamente". A falha da pesquisa pode ser
+  simulada abrindo a tela com `?simularErro=true`; as listas de apoio (instituições) não são
+  afetadas.
 
 ### Tabela
 
 - **CL-10** Colunas: ID Lote, Data Entrada, Valor, Quant. Lançamentos, Usuário Registro,
   Usuário Aprovação, Situação Lote e Data/Hora Situação Lote. Valor em reais no formato pt-BR
   (R$ 5.000,00), datas em dd/mm/aaaa e data/hora em dd/mm/aaaa, hh:mm:ss, como na referência.
-- **CL-11** Sem resultados, a tabela mostra "Nenhum registro encontrado.".
+- **CL-11** Quando a pesquisa termina sem resultados, a tabela mostra "Nenhum registro
+  encontrado.". Enquanto a pesquisa carrega, mostra "Pesquisando lotes…".
 - **CL-12** Cada linha tem uma caixa de seleção. A caixa do cabeçalho seleciona ou desmarca
   todos os lotes da página e indica seleção parcial. Trocar de página ou pesquisar limpa a seleção.
 - **CL-13** Paginação com 10 lotes por página: primeira, anterior, números das páginas, próxima e

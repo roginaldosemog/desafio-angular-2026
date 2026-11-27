@@ -1,12 +1,37 @@
 <section class="card" aria-label="Consulta de Lotes">
   <app-filtros-lotes [instituicoes]="instituicoes()" (pesquisar)="aoPesquisar($event)" />
-  <div>
-    <app-tabela-lotes [lotes]="lotes()" [(selecionados)]="selecionados" />
-    <app-paginacao
-      [pagina]="paginaAtual()"
-      [total]="total()"
-      [tamanhoPagina]="tamanhoPagina"
-      (trocarPagina)="aoTrocarPagina($event)"
-    />
+
+  <div class="resultados" [attr.aria-busy]="carregando()">
+    <!-- Espaço fixo para a barra: ela aparece e some sem empurrar a tabela (DS-18). -->
+    <div class="barra-carregamento">
+      @if (carregando()) {
+        <mat-progress-bar mode="indeterminate" aria-label="Pesquisando lotes" />
+      }
+    </div>
+
+    @if (falhou()) {
+      <div class="aviso-erro" role="alert">
+        <mat-icon aria-hidden="true">error</mat-icon>
+        <span>Não foi possível pesquisar os lotes.</span>
+        <button matButton="outlined" type="button" (click)="tentarNovamente()">
+          Tentar novamente
+        </button>
+      </div>
+    } @else {
+      <app-tabela-lotes
+        [lotes]="lotes()"
+        [carregando]="carregando()"
+        [(selecionados)]="selecionados"
+      />
+      <app-paginacao
+        [pagina]="paginaAtual()"
+        [total]="total()"
+        [tamanhoPagina]="tamanhoPagina"
+        (trocarPagina)="aoTrocarPagina($event)"
+      />
+    }
   </div>
+
+  <!-- CL-08: anuncia início e fim da pesquisa a leitores de tela, sem mudar o foco. -->
+  <p class="anuncio somente-leitor" aria-live="polite">{{ anuncio() }}</p>
 </section>

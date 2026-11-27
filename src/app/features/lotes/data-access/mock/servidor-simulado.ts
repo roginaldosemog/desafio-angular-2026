@@ -18,13 +18,14 @@ export class ServidorSimulado {
 
   /**
    * Espera o atraso e só então processa ou falha, como um servidor. A decisão é tomada a cada
-   * inscrição, então tentar de novo (nova inscrição) reavalia a URL.
+   * inscrição, então tentar de novo (nova inscrição) reavalia a URL. Com `podeFalhar: false`
+   * (listas de apoio), a falha simulada não se aplica: ela demonstra o erro da pesquisa (CL-09).
    */
-  responder<T>(processar: () => T): Observable<T> {
+  responder<T>(processar: () => T, { podeFalhar = true } = {}): Observable<T> {
     return of(null).pipe(
       delay(this.atrasoMs),
       map(() => {
-        if (this.falhaSimulada()) {
+        if (podeFalhar && this.falhaSimulada()) {
           throw new Error(`Falha simulada pela URL (?${PARAMETRO_SIMULAR_ERRO}=true).`);
         }
         return processar();

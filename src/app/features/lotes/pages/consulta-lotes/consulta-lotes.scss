@@ -25,3 +25,25 @@
     padding: var(--app-espaco-4);
   }
 }
+
+// DS-18: a barra de carregamento ocupa sempre o mesmo espaço, aparecendo ou não.
+.barra-carregamento {
+  height: 4px;
+  margin-bottom: var(--app-espaco-1);
+}
+
+.aviso-erro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--app-espaco-3);
+  padding: var(--app-espaco-4);
+  border: 1px solid var(--app-error);
+  border-radius: var(--app-raio-painel);
+  color: var(--app-error);
+  font-weight: 600;
+
+  button {
+    margin-left: auto;
+  }
+}
