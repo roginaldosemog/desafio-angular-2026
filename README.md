@@ -24,6 +24,8 @@ Angular 22.3 · Angular Material 22.3 · TypeScript 6.0 · RxJS 7.8 · Vitest 5.
   [styles.scss](src/styles.scss).
 - **Fonte Asap e ícones Material Symbols** servidos localmente, sem CDN.
 - **Rotas** com carregamento sob demanda (`loadComponent`). A tela fica em `/contabil`.
+- **Especificação primeiro (SDD):** critérios de aceite e regras de design em
+  [docs/specs](docs/specs), citados no nome dos testes (`CL-01`, `IL-03`, `DS-09`...).
 - **Testes com Vitest**, padrão do Angular 22, com API compatível com Jest.
 - **ESLint** com regras de acessibilidade e **Prettier**.
 - **CI no GitHub Actions:** formatação, lint, testes com cobertura e build a cada push e pull

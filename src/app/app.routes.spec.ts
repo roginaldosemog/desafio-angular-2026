@@ -15,25 +15,25 @@ describe('Rotas da aplicação', () => {
     router = TestBed.inject(Router);
   });
 
-  it('redireciona a raiz para /contabil', async () => {
+  it('CL-01: redireciona a raiz para /contabil', async () => {
     await harness.navigateByUrl('/');
 
     expect(router.url).toBe('/contabil');
   });
 
-  it('carrega a página de consulta de lotes em /contabil', async () => {
+  it('CL-01: carrega a consulta de lotes em /contabil', async () => {
     await harness.navigateByUrl('/contabil');
 
     expect(harness.routeDebugElement?.componentInstance).toBeInstanceOf(ConsultaLotes);
   });
 
-  it('define o título da aba pela rota', async () => {
+  it('CL-01: define o título da aba', async () => {
     await harness.navigateByUrl('/contabil');
 
     expect(TestBed.inject(Title).getTitle()).toBe('Consulta de Lotes · Outros Créditos/Débitos');
   });
 
-  it('redireciona endereços desconhecidos para /contabil', async () => {
+  it('CL-01: redireciona endereços desconhecidos para /contabil', async () => {
     await harness.navigateByUrl('/rota-inexistente');
 
     expect(router.url).toBe('/contabil');

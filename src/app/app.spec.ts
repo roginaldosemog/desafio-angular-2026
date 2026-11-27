@@ -18,11 +18,11 @@ describe('App', () => {
     elemento = fixture.nativeElement as HTMLElement;
   });
 
-  it('exibe o título do módulo', () => {
+  it('CL-02: exibe o título do módulo', () => {
     expect(elemento.querySelector('h1')?.textContent).toBe('Outros Créditos/Débitos');
   });
 
-  it('exibe o breadcrumb Início > Outros Créditos/Débitos', () => {
+  it('CL-02: exibe o breadcrumb Início > Outros Créditos/Débitos', () => {
     const breadcrumb = elemento.querySelector('nav[aria-label="Navegação estrutural"]');
     const inicio = breadcrumb?.querySelector('a');
 
@@ -33,7 +33,7 @@ describe('App', () => {
     );
   });
 
-  it('marca o módulo Contábil como página atual quando a rota /contabil está ativa', () => {
+  it('CL-02: marca o módulo Contábil como página atual', () => {
     const modulo = elemento.querySelector<HTMLAnchorElement>('nav[aria-label="Módulos"] a');
 
     expect(modulo?.getAttribute('href')).toBe('/contabil');
@@ -42,7 +42,7 @@ describe('App', () => {
     expect(modulo?.classList).toContain('ativo');
   });
 
-  it('exibe o ícone do módulo pelo Material Symbols, oculto para leitores de tela', () => {
+  it('CL-02: exibe o ícone do módulo oculto para leitores de tela', () => {
     const icone = elemento.querySelector('nav[aria-label="Módulos"] mat-icon');
 
     expect(icone?.textContent?.trim()).toBe('table_view');
