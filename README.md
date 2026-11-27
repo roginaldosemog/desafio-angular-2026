@@ -23,6 +23,8 @@ Angular 22.3 · Angular Material 22.3 · TypeScript 6.0 · RxJS 7.8 · Vitest 5.
 - **Angular Material** com tema gerado a partir de `#007f78` e design tokens (`--app-*`) em
   [styles.scss](src/styles.scss).
 - **Fonte Asap e ícones Material Symbols** servidos localmente, sem CDN.
+- **Campo monetário próprio** (`ControlValueAccessor`), preenchido da direita para a esquerda e
+  com valor em centavos, sem biblioteca de máscara.
 - **Modelos imutáveis** (`readonly`), valores em centavos inteiros e datas no formato
   `AAAA-MM-DD` (tipo `DataIso`), sem fuso horário.
 - **Rotas** com carregamento sob demanda (`loadChildren`). A tela fica em `/contabil`.
