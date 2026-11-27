@@ -51,20 +51,20 @@ describe('CampoMonetario', () => {
 
   it('DS-09: preenche da direita para a esquerda, a partir dos centavos', () => {
     digitar('1');
-    expect(campo.value).toBe('0,01');
+    expect(campo.value).toBe('R$ 0,01');
 
     digitar('2');
-    expect(campo.value).toBe('0,12');
+    expect(campo.value).toBe('R$ 0,12');
 
     digitar('3');
-    expect(campo.value).toBe('1,23');
+    expect(campo.value).toBe('R$ 1,23');
     expect(controle.value).toBe(123);
   });
 
   it('DS-09: formata milhares no padrão pt-BR', () => {
     digitar('123456789');
 
-    expect(campo.value).toBe('1.234.567,89');
+    expect(campo.value).toBe('R$ 1.234.567,89');
     expect(controle.value).toBe(123456789);
   });
 
@@ -73,7 +73,7 @@ describe('CampoMonetario', () => {
 
     apagarUltimo();
 
-    expect(campo.value).toBe('0,12');
+    expect(campo.value).toBe('R$ 0,12');
     expect(controle.value).toBe(12);
   });
 
@@ -93,15 +93,22 @@ describe('CampoMonetario', () => {
 
     digitar('a');
 
-    expect(campo.value).toBe('0,12');
+    expect(campo.value).toBe('R$ 0,12');
     expect(controle.value).toBe(12);
   });
 
   it('DS-09: colar "1.234,56" resulta em 1.234,56', () => {
     editar('1.234,56');
 
-    expect(campo.value).toBe('1.234,56');
+    expect(campo.value).toBe('R$ 1.234,56');
     expect(controle.value).toBe(123456);
+  });
+
+  it('DS-09: colar um valor com "R$" também funciona', () => {
+    editar('R$ 10,50');
+
+    expect(campo.value).toBe('R$ 10,50');
+    expect(controle.value).toBe(1050);
   });
 
   it('DS-09: não passa de 999.999.999,99', () => {
@@ -109,13 +116,13 @@ describe('CampoMonetario', () => {
 
     digitar('5');
 
-    expect(campo.value).toBe('999.999.999,99');
+    expect(campo.value).toBe('R$ 999.999.999,99');
     expect(controle.value).toBe(99999999999);
   });
 
   it('DS-09: exibe formatado o valor definido pelo formulário, em centavos', () => {
     controle.setValue(500000);
-    expect(campo.value).toBe('5.000,00');
+    expect(campo.value).toBe('R$ 5.000,00');
 
     controle.setValue(null);
     expect(campo.value).toBe('');

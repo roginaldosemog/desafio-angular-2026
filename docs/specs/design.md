@@ -52,14 +52,16 @@ estrutura e proporção, não pixel perfect.
 - **DS-08** Somente leitura: texto mais claro e fundo levemente cinza. O campo continua focável e
   é lido pelo leitor de tela (`readonly`, não `disabled`).
 - **DS-09** **Campo monetário** com preenchimento da direita para a esquerda: cada dígito entra
-  pelos centavos (`1` → 0,01; `12` → 0,12; `123` → 1,23).
+  pelos centavos (`1` → R$ 0,01; `12` → R$ 0,12; `123` → R$ 1,23).
+  - O símbolo fica colado ao número ("R$ 1,23"). Vazio, o campo mostra o placeholder "R$ 0,00".
   - Backspace remove o último dígito, e o valor fica alinhado à direita.
   - Só aceita dígitos. Colar "1.234,56" resulta em 1.234,56.
   - No celular, abre o teclado numérico.
   - Limite de 999.999.999,99.
   - O valor guardado no formulário é um inteiro em centavos.
 - **DS-10** Data: digitada no formato dd/mm/aaaa ou escolhida no calendário pelo ícone dentro do
-  campo, à direita.
+  campo, à direita. Ao digitar só números, as barras entram sozinhas (`08081997` → 08/08/1997);
+  uma data colada já com barras fica como está.
 - **DS-11** ID Lote e Conta Corrente: só dígitos, com teclado numérico no celular.
 - **DS-12** Busca por lupa (Conta Corrente, ID Evento): botão de ícone ao lado do campo, com rótulo
   acessível (por exemplo, "Buscar conta corrente"). O resultado (titular ou descrição do evento)
@@ -120,7 +122,8 @@ estrutura e proporção, não pixel perfect.
 - **DS-25** Abaixo de 1024 px, os filtros ficam em uma coluna. Abaixo de 600 px:
   - menu lateral com 52 px e card com padding de 16 px;
   - a barra de ações quebra em mais de uma linha;
-  - as faixas De/Até continuam lado a lado;
+  - as faixas De/Até de ID e Valor continuam lado a lado; as de data ficam uma abaixo da outra,
+    porque o campo com o ícone de calendário não cabe em meia largura;
   - o modal ocupa a tela inteira, com todos os campos na largura toda.
 
 ## Acessibilidade

@@ -1,17 +1,34 @@
+import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 import { Routes } from '@angular/router';
+import { provideDatasPtBr } from '../../shared/datas/datas-pt-br';
+import { CadastrosApi } from './data-access/cadastros-api';
+import { CadastrosApiMock } from './data-access/cadastros-api-mock';
 import { LotesApi } from './data-access/lotes-api';
 import { LotesApiMock } from './data-access/lotes-api-mock';
+import { ServidorSimulado } from './data-access/mock/servidor-simulado';
 import { ConsultaLotes } from './pages/consulta-lotes/consulta-lotes';
 
 /**
  * Rotas da funcionalidade de lotes, carregadas sob demanda pelo `app.routes.ts`.
- * O provider fica na rota: a API e os dados mock só são baixados ao abrir /contabil.
+ * Os providers ficam na rota: APIs, dados mock, datepicker e campos só são baixados ao abrir
+ * /contabil, fora do bundle inicial.
  */
 export const LOTES_ROUTES: Routes = [
   {
     path: '',
     title: 'Consulta de Lotes · Outros Créditos/Débitos',
-    providers: [{ provide: LotesApi, useClass: LotesApiMock }],
+    providers: [
+      ServidorSimulado,
+      { provide: LotesApi, useClass: LotesApiMock },
+      { provide: CadastrosApi, useClass: CadastrosApiMock },
+      // Datepicker lê e exibe dd/mm/aaaa, com textos em português.
+      provideDatasPtBr(),
+      // Campos com contorno; o espaço da mensagem de erro só aparece quando há erro.
+      {
+        provide: MAT_FORM_FIELD_DEFAULT_OPTIONS,
+        useValue: { appearance: 'outline', subscriptSizing: 'dynamic' },
+      },
+    ],
     component: ConsultaLotes,
   },
 ];

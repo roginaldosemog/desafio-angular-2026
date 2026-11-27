@@ -1,0 +1,122 @@
+// Regras DS-03 a DS-05 e DS-25 de docs/specs/design.md.
+:host {
+  display: block;
+}
+
+.painel {
+  border: 1px solid var(--app-border);
+}
+
+.cabecalho {
+  flex-direction: column;
+  line-height: 1.3;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--app-espaco-1);
+  color: var(--app-header);
+}
+
+.titulo {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.subtitulo {
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--app-espaco-4) var(--app-espaco-8);
+}
+
+mat-form-field {
+  width: 100%;
+}
+
+.coluna-geral {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-espaco-1);
+}
+
+.rotulo {
+  color: var(--app-header);
+  font-weight: 600;
+
+  &:not(:first-child) {
+    margin-top: var(--app-espaco-2);
+  }
+}
+
+.coluna-faixas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-espaco-4);
+}
+
+.faixa {
+  display: grid;
+  grid-template-columns: 96px repeat(2, minmax(0, 1fr));
+  align-items: start;
+  column-gap: var(--app-espaco-2);
+}
+
+// Alinha o nome da faixa com o centro dos campos, abaixo dos rótulos De/Até.
+.rotulo-faixa {
+  padding-top: 20px;
+  line-height: 36px;
+}
+
+.limite {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-espaco-1);
+  min-width: 0;
+}
+
+.rotulo-limite {
+  color: var(--app-primary);
+  font-weight: 600;
+}
+
+.campo-curto {
+  max-width: 160px;
+}
+
+.acoes {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 1023px) {
+  .grade {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 599px) {
+  .faixa {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rotulo-faixa {
+    grid-column: 1 / -1;
+    padding-top: 0;
+    line-height: normal;
+    font-weight: 600;
+  }
+
+  .campo-curto {
+    max-width: none;
+  }
+
+  // Data com ícone de calendário não cabe em meia largura: De e Até ficam empilhados.
+  .faixa-data {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: var(--app-espaco-2);
+  }
+}

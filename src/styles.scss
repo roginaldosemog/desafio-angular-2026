@@ -22,6 +22,17 @@ html {
   --app-muted: #6b6b6b;
   --app-error: #ba1a1a;
   --app-radius: 4px;
+  --app-raio-painel: 6px;
+  --app-raio-card: 12px;
+  --app-sombra-card: 0 1px 3px rgb(0 0 0 / 12%);
+  // Escala de espaçamento de 4 px (docs/specs/design.md).
+  --app-espaco-1: 4px;
+  --app-espaco-2: 8px;
+  --app-espaco-3: 12px;
+  --app-espaco-4: 16px;
+  --app-espaco-6: 24px;
+  --app-espaco-8: 32px;
+  --app-espaco-12: 48px;
   // Altura única do cabeçalho e do item de módulo lateral: mantém as bordas inferiores alinhadas.
   --app-cabecalho-altura: 64px;
 
@@ -53,8 +64,64 @@ html {
     )
   );
 
+  // Ajustes por componente pelas APIs de tokens do Material, sem ::ng-deep (DS-06, DS-07).
+  @include mat.form-field-overrides(
+    (
+      container-height: 36px,
+      container-vertical-padding: 6px,
+      container-text-size: 12px,
+      outlined-container-shape: var(--app-radius),
+      outlined-outline-color: var(--app-border),
+      outlined-focus-outline-color: var(--app-primary),
+      subscript-text-size: 11px,
+    )
+  );
+
+  // Select e opções no mesmo tamanho de texto dos campos (o padrão do Material é 16 px).
+  @include mat.select-overrides(
+    (
+      trigger-text-size: 12px,
+    )
+  );
+  @include mat.option-overrides(
+    (
+      label-text-size: 12px,
+    )
+  );
+
+  // Painel de filtros com borda e sem sombra (DS-03).
+  @include mat.expansion-overrides(
+    (
+      container-shape: var(--app-raio-painel),
+      container-elevation-shadow: none,
+      container-text-size: 12px,
+      header-collapsed-state-height: 56px,
+      header-expanded-state-height: 56px,
+    )
+  );
+
+  // Botão primário: texto branco sobre o verde, contraste AA (DS-14).
+  @include mat.button-overrides(
+    (
+      filled-container-shape: var(--app-radius),
+      filled-container-height: 32px,
+      filled-label-text-size: 12px,
+      filled-label-text-weight: 600,
+    )
+  );
+
   color-scheme: light;
   min-height: 100%;
+
+  // No celular, o subtítulo dos filtros quebra em duas linhas: o cabeçalho precisa crescer.
+  @media (max-width: 599px) {
+    @include mat.expansion-overrides(
+      (
+        header-collapsed-state-height: 80px,
+        header-expanded-state-height: 80px,
+      )
+    );
+  }
 }
 
 body {

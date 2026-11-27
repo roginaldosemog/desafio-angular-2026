@@ -4,9 +4,13 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 /** 11 dígitos em centavos: até 999.999.999,99. */
 const MAXIMO_DIGITOS = 11;
 
+/** Exibido junto do número, para ficar colado ao valor no campo alinhado à direita. */
+const SIMBOLO = 'R$ ';
+
 /**
  * Campo monetário preenchido da direita para a esquerda (DS-09): cada dígito entra pelos
- * centavos (1 → 0,01; 12 → 0,12; 123 → 1,23). O formulário recebe um inteiro em centavos.
+ * centavos (1 → R$ 0,01; 12 → R$ 0,12; 123 → R$ 1,23). O formulário recebe um inteiro em
+ * centavos. O placeholder ("R$ 0,00") fica no template.
  *
  * Trata o evento `input` (texto depois da edição) em vez das teclas: digitar, apagar, colar,
  * apagar uma seleção e o teclado do celular passam pelo mesmo caminho.
@@ -65,6 +69,7 @@ export class CampoMonetario implements ControlValueAccessor {
   }
 
   private exibir(): void {
-    this.campo.value = this.centavos === null ? '' : this.formato.format(this.centavos / 100);
+    this.campo.value =
+      this.centavos === null ? '' : SIMBOLO + this.formato.format(this.centavos / 100);
   }
 }

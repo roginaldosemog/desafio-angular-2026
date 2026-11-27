@@ -1,0 +1,164 @@
+<mat-expansion-panel class="painel" [expanded]="true">
+  <mat-expansion-panel-header>
+    <mat-panel-title class="cabecalho">
+      <span class="titulo">Filtros</span>
+      <span class="subtitulo">Pesquisar lote outros créditos/débitos</span>
+    </mat-panel-title>
+  </mat-expansion-panel-header>
+
+  <form class="grade" [formGroup]="form" (ngSubmit)="aoPesquisar()">
+    <div class="coluna-geral">
+      <label class="rotulo" for="instituicao-responsavel">Instituição Resp.</label>
+      <mat-form-field>
+        <input
+          matInput
+          class="instituicao-responsavel"
+          id="instituicao-responsavel"
+          readonly
+          [value]="instituicaoResponsavel()"
+        />
+      </mat-form-field>
+
+      <span class="rotulo" id="rotulo-instituicao">Instituição</span>
+      <mat-form-field>
+        <mat-select
+          class="instituicao"
+          formControlName="instituicao"
+          aria-labelledby="rotulo-instituicao"
+        >
+          @for (instituicao of instituicoes(); track instituicao.codigo) {
+            <mat-option [value]="instituicao.codigo">
+              {{ instituicao.codigo }} - {{ instituicao.nome }}
+            </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <span class="rotulo" id="rotulo-situacao">Situação Lote</span>
+      <mat-form-field>
+        <mat-select class="situacao" formControlName="situacao" aria-labelledby="rotulo-situacao">
+          <mat-option [value]="todas">Todas</mat-option>
+          @for (situacao of situacoes; track situacao) {
+            <mat-option [value]="situacao">{{ rotuloSituacao[situacao] }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <div class="coluna-faixas">
+      <div class="faixa" formGroupName="idLote">
+        <span class="rotulo-faixa" id="rotulo-id-lote">ID Lote</span>
+        <div class="limite">
+          <span class="rotulo-limite" id="rotulo-id-lote-de">De</span>
+          <mat-form-field class="campo-curto campo-id-lote-de">
+            <input
+              matInput
+              class="id-lote-de"
+              formControlName="de"
+              inputmode="numeric"
+              aria-labelledby="rotulo-id-lote rotulo-id-lote-de"
+            />
+            <mat-error>Inteiro maior que zero.</mat-error>
+          </mat-form-field>
+        </div>
+        <div class="limite">
+          <span class="rotulo-limite" id="rotulo-id-lote-ate">Até</span>
+          <mat-form-field class="campo-curto campo-id-lote-ate">
+            <input
+              matInput
+              class="id-lote-ate"
+              formControlName="ate"
+              inputmode="numeric"
+              aria-labelledby="rotulo-id-lote rotulo-id-lote-ate"
+              [errorStateMatcher]="erroNaFaixa"
+            />
+            @if (form.controls.idLote.controls.ate.invalid) {
+              <mat-error>Inteiro maior que zero.</mat-error>
+            } @else {
+              <mat-error>Deve ser maior ou igual a De.</mat-error>
+            }
+          </mat-form-field>
+        </div>
+      </div>
+
+      <div class="faixa" formGroupName="valorCentavos">
+        <span class="rotulo-faixa" id="rotulo-valor-lote">Valor Lote</span>
+        <div class="limite">
+          <span class="rotulo-limite" id="rotulo-valor-lote-de">De</span>
+          <mat-form-field class="campo-curto campo-valor-lote-de">
+            <input
+              matInput
+              appCampoMonetario
+              placeholder="R$ 0,00"
+              class="valor-lote-de"
+              formControlName="de"
+              aria-labelledby="rotulo-valor-lote rotulo-valor-lote-de"
+            />
+          </mat-form-field>
+        </div>
+        <div class="limite">
+          <span class="rotulo-limite" id="rotulo-valor-lote-ate">Até</span>
+          <mat-form-field class="campo-curto campo-valor-lote-ate">
+            <input
+              matInput
+              appCampoMonetario
+              placeholder="R$ 0,00"
+              class="valor-lote-ate"
+              formControlName="ate"
+              aria-labelledby="rotulo-valor-lote rotulo-valor-lote-ate"
+              [errorStateMatcher]="erroNaFaixa"
+            />
+            <mat-error>Deve ser maior ou igual a De.</mat-error>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <div class="faixa faixa-data" formGroupName="dataEntrada">
+        <span class="rotulo-faixa" id="rotulo-data-entrada">Data Entrada</span>
+        <div class="limite">
+          <span class="rotulo-limite" id="rotulo-data-entrada-de">De</span>
+          <mat-form-field class="campo-data-entrada-de">
+            <input
+              matInput
+              class="data-entrada-de"
+              formControlName="de"
+              appMascaraData
+              placeholder="dd/mm/aaaa"
+              aria-labelledby="rotulo-data-entrada rotulo-data-entrada-de"
+              [matDatepicker]="calendarioDe"
+            />
+            <mat-datepicker-toggle matIconSuffix [for]="calendarioDe" />
+            <mat-datepicker #calendarioDe />
+            <mat-error>Data inválida.</mat-error>
+          </mat-form-field>
+        </div>
+        <div class="limite">
+          <span class="rotulo-limite" id="rotulo-data-entrada-ate">Até</span>
+          <mat-form-field class="campo-data-entrada-ate">
+            <input
+              matInput
+              class="data-entrada-ate"
+              formControlName="ate"
+              appMascaraData
+              placeholder="dd/mm/aaaa"
+              aria-labelledby="rotulo-data-entrada rotulo-data-entrada-ate"
+              [matDatepicker]="calendarioAte"
+              [errorStateMatcher]="erroNaFaixa"
+            />
+            <mat-datepicker-toggle matIconSuffix [for]="calendarioAte" />
+            <mat-datepicker #calendarioAte />
+            @if (form.controls.dataEntrada.controls.ate.invalid) {
+              <mat-error>Data inválida.</mat-error>
+            } @else {
+              <mat-error>Deve ser maior ou igual a De.</mat-error>
+            }
+          </mat-form-field>
+        </div>
+      </div>
+    </div>
+
+    <div class="acoes">
+      <button matButton="filled" type="submit">Pesquisar</button>
+    </div>
+  </form>
+</mat-expansion-panel>

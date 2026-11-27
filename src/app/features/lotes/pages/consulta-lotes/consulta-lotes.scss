@@ -1,0 +1,27 @@
+// Regras DS-01, DS-02 e DS-25 de docs/specs/design.md.
+:host {
+  display: block;
+  padding: var(--app-espaco-3);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-espaco-3);
+  padding: var(--app-espaco-12);
+  border-radius: var(--app-raio-card);
+  background: var(--app-surface);
+  box-shadow: var(--app-sombra-card);
+}
+
+@media (max-width: 1279px) {
+  .card {
+    padding: var(--app-espaco-6);
+  }
+}
+
+@media (max-width: 599px) {
+  .card {
+    padding: var(--app-espaco-4);
+  }
+}
