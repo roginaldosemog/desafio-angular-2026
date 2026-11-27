@@ -1,0 +1,14 @@
+# Gerados ou instalados dentro da imagem.
+node_modules
+dist
+.angular
+coverage
+
+# Fora do que a imagem precisa.
+.git
+.github
+.vscode
+
+# Arquivos locais e privados.
+CLAUDE.local.md
+.guia-entrevista.md

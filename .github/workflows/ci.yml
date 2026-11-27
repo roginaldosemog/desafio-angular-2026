@@ -31,3 +31,13 @@ jobs:
       - run: npm run lint
       - run: npm run test:ci
       - run: npm run build
+
+  imagem:
+    name: Imagem Docker
+    # Só monta a imagem se o código passou nas verificações.
+    needs: qualidade
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - run: docker build --tag desafio-angular-2026 .

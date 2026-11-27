@@ -12,6 +12,13 @@ npm run lint
 npm run build
 ```
 
+Com Docker, sem Node instalado:
+
+```bash
+docker build -t desafio-angular .
+docker run --rm -p 8080:80 desafio-angular   # http://localhost:8080
+```
+
 ## Versões
 
 Angular 22.3 · Angular Material 22.3 · TypeScript 6.0 · RxJS 7.8 · Vitest 5.1
@@ -57,4 +64,6 @@ Angular 22.3 · Angular Material 22.3 · TypeScript 6.0 · RxJS 7.8 · Vitest 5.
 - **Testes com Vitest**, padrão do Angular 22, com API compatível com Jest.
 - **ESLint** com regras de acessibilidade e **Prettier**.
 - **CI no GitHub Actions:** formatação, lint, testes com cobertura e build a cada push e pull
-  request.
+  request; em seguida, monta a imagem Docker.
+- **Docker em duas etapas:** Node só para o build; a imagem final é o Nginx servindo os arquivos
+  estáticos, com redirecionamento das rotas do Angular para o `index.html`.
