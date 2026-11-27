@@ -42,6 +42,7 @@ describe('ConsultaLotes', () => {
   let enviar: ReturnType<typeof vi.fn<LotesApi['enviar']>>;
   let confirmar: ReturnType<typeof vi.fn<LotesApi['confirmar']>>;
   let excluir: ReturnType<typeof vi.fn<LotesApi['excluir']>>;
+  let listarLancamentos: ReturnType<typeof vi.fn<LancamentosApi['listar']>>;
 
   async function criar(
     opcoes: {
@@ -60,6 +61,7 @@ describe('ConsultaLotes', () => {
       listarHistoricos: () => of([]),
       listarPontosAtendimento: () => of([]),
     };
+    listarLancamentos = vi.fn<LancamentosApi['listar']>(() => of([]));
     pesquisar = vi.fn<LotesApi['pesquisar']>(
       opcoes.pesquisar ?? (() => of(pagina(opcoes.lotes ?? [], opcoes.total))),
     );
@@ -76,7 +78,12 @@ describe('ConsultaLotes', () => {
         { provide: CadastrosApi, useValue: cadastros },
         {
           provide: LancamentosApi,
-          useValue: { listar: () => of([]), incluir: vi.fn() } satisfies LancamentosApi,
+          useValue: {
+            listar: listarLancamentos,
+            incluir: vi.fn(),
+            alterar: vi.fn(),
+            excluir: vi.fn(),
+          } satisfies LancamentosApi,
         },
         {
           provide: LotesApi,
@@ -400,6 +407,28 @@ describe('ConsultaLotes', () => {
       const dialogo = await raiz().getHarness(MatDialogHarness);
       expect(await dialogo.getTitleText()).toBe('Incluir Lançamento');
       expect(document.activeElement?.id).toBe('conta-corrente');
+    });
+
+    it('CL-16: Alterar abre o modal com os lançamentos do lote', async () => {
+      await criar({ lotes: LOTES });
+      await selecionar(2);
+
+      await acionar('Alterar');
+
+      const dialogo = await raiz().getHarness(MatDialogHarness);
+      expect(await dialogo.getTitleText()).toBe('Incluir Lançamento');
+      expect(listarLancamentos).toHaveBeenCalledWith(2);
+    });
+
+    it('CL-18: Visualizar abre o lote somente para leitura', async () => {
+      await criar({ lotes: LOTES });
+      await selecionar(3);
+
+      await acionar('Visualizar');
+
+      const dialogo = await raiz().getHarness(MatDialogHarness);
+      expect(await dialogo.getTitleText()).toBe('Visualizar Lote 3');
+      expect(listarLancamentos).toHaveBeenCalledWith(3);
     });
 
     it('IL-16: ao fechar o modal, a consulta é refeita', async () => {

@@ -1,7 +1,6 @@
 // Regras DS-20 a DS-22 de docs/specs/design.md.
-:host {
-  display: block;
-}
+// Sem estilo no :host: o Material deixa o componente do diálogo com `display: contents`, para
+// título, conteúdo e rodapé serem filhos diretos do layout do diálogo (só o conteúdo rola).
 
 .formulario {
   display: flex;
@@ -94,4 +93,27 @@ mat-form-field {
     width: 100%;
     max-width: none;
   }
+}
+
+// Aviso do modo (Alterar ou Visualizar), acima do formulário.
+.aviso-modo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--app-espaco-2);
+  margin-bottom: var(--app-espaco-3);
+  padding: var(--app-espaco-2) var(--app-espaco-3);
+  border-radius: var(--app-raio-painel);
+  background: var(--app-highlight);
+  color: var(--app-header);
+  font-weight: 600;
+}
+
+.acoes-grade {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--app-espaco-2);
+  margin-top: var(--app-espaco-2);
 }

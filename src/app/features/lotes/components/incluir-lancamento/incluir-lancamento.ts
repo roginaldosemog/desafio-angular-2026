@@ -1,6 +1,7 @@
 import {
   afterNextRender,
   Component,
+  computed,
   DestroyRef,
   ElementRef,
   inject,
@@ -17,19 +18,24 @@ import {
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { filter, finalize, startWith, take } from 'rxjs';
+import { filter, finalize, Observable, startWith, switchMap, take } from 'rxjs';
+import {
+  DadosDialogoMensagem,
+  DialogoMensagem,
+} from '../../../../shared/components/dialogo-mensagem/dialogo-mensagem';
 import { CampoMonetario } from '../../../../shared/directives/campo-monetario';
 import { valorPositivo } from '../../../../shared/forms/validadores';
 import { CadastrosApi } from '../../data-access/cadastros-api';
 import { LancamentosApi } from '../../data-access/lancamentos-api';
 import { contaCorrenteExistente } from '../../forms/conta-corrente-existente';
 import { DadosLancamento, Lancamento, ROTULO_SITUACAO_LANCAMENTO } from '../../models/lancamento';
+import { Lote } from '../../models/lote';
 import { GradeLancamentos } from '../grade-lancamentos/grade-lancamentos';
 
 /**
@@ -48,12 +54,23 @@ const ORDEM_DOS_CAMPOS: readonly (readonly [string, string])[] = [
 /** O que a página informa ao abrir o modal. */
 export interface DadosModalLancamento {
   /** Lote em edição; `null` para um lote novo (CL-15). */
-  readonly loteId: number | null;
+  readonly lote: Lote | null;
+  /** CL-18: só visualizar o lote e seus lançamentos. */
+  readonly somenteLeitura?: boolean;
 }
 
 /**
- * Modal de inclusão de lançamentos (IL-01 a IL-16). Aberto pelo MatDialog, que cuida do foco
- * preso no modal, do Esc e de devolver o foco ao botão que o abriu.
+ * O que o formulário está fazendo (IL-15). União discriminada: o `id` do lançamento só existe
+ * nos modos que trabalham sobre um lançamento da grade, e o compilador garante isso.
+ */
+type Modo =
+  | { readonly tipo: 'incluir' }
+  | { readonly tipo: 'alterar'; readonly id: number }
+  | { readonly tipo: 'visualizar'; readonly id: number };
+
+/**
+ * Modal de lançamentos (IL-01 a IL-16). Aberto pelo MatDialog, que cuida do foco preso no modal,
+ * do Esc e de devolver o foco ao botão que o abriu.
  */
 @Component({
   selector: 'app-incluir-lancamento',
@@ -76,6 +93,7 @@ export class IncluirLancamento {
   private readonly dados = inject<DadosModalLancamento>(MAT_DIALOG_DATA);
   private readonly cadastros = inject(CadastrosApi);
   private readonly lancamentosApi = inject(LancamentosApi);
+  private readonly dialogo = inject(MatDialog);
   private readonly avisos = inject(MatSnackBar);
   private readonly elemento = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly injector = inject(Injector);
@@ -87,12 +105,43 @@ export class IncluirLancamento {
   });
   protected readonly situacao = ROTULO_SITUACAO_LANCAMENTO.PENDENTE;
 
+  protected readonly somenteLeitura = this.dados.somenteLeitura ?? false;
+  protected readonly titulo =
+    this.somenteLeitura && this.dados.lote
+      ? `Visualizar Lote ${this.dados.lote.id}`
+      : 'Incluir Lançamento';
+
   /** Lote em edição. Num lote novo, fica nulo até o primeiro lançamento criá-lo. */
-  private readonly loteId = signal(this.dados.loteId);
+  private readonly loteId = signal(this.dados.lote?.id ?? null);
   protected readonly lancamentos = signal<readonly Lancamento[]>([]);
+  protected readonly selecionadosNaGrade = signal<ReadonlySet<number>>(new Set());
+  protected readonly modo = signal<Modo>({ tipo: 'incluir' });
   /** Titular da conta encontrada pela lupa (IL-03). */
   protected readonly titular = signal('');
   protected readonly salvando = signal(false);
+
+  /** IL-14: as ações da grade trabalham sobre exatamente um lançamento selecionado. */
+  protected readonly selecionado = computed(() => {
+    const ids = [...this.selecionadosNaGrade()];
+    return ids.length === 1
+      ? (this.lancamentos().find((item) => item.id === ids[0]) ?? null)
+      : null;
+  });
+
+  /** Documento do lançamento em alteração ou visualização, para o aviso do modo. */
+  protected readonly documentoDoModo = computed(() => {
+    const modo = this.modo();
+    return modo.tipo === 'incluir'
+      ? ''
+      : (this.lancamentos().find((item) => item.id === modo.id)?.documento ?? '');
+  });
+
+  protected readonly podeSalvar = computed(
+    () => !this.somenteLeitura && this.modo().tipo !== 'visualizar',
+  );
+  protected readonly textoSalvar = computed(() =>
+    this.modo().tipo === 'alterar' ? 'Salvar alteração' : 'Incluir',
+  );
 
   private readonly campoConta = viewChild.required<ElementRef<HTMLInputElement>>('campoConta');
   private readonly formulario = viewChild.required(FormGroupDirective);
@@ -128,7 +177,10 @@ export class IncluirLancamento {
   protected readonly manterDados = this.fb.control(false);
 
   constructor() {
-    const loteId = this.dados.loteId;
+    if (this.somenteLeitura) {
+      this.form.disable();
+    }
+    const loteId = this.loteId();
     if (loteId !== null) {
       this.lancamentosApi
         .listar(loteId)
@@ -146,9 +198,9 @@ export class IncluirLancamento {
     numero.markAsTouched();
   }
 
-  /** IL-12 e IL-13: só grava com o formulário válido. */
-  protected incluir(): void {
-    if (this.salvando()) {
+  /** IL-12, IL-13 e IL-15: inclui ou salva a alteração, só com o formulário válido. */
+  protected salvar(): void {
+    if (this.salvando() || !this.podeSalvar()) {
       return;
     }
     this.form.markAllAsTouched();
@@ -163,31 +215,145 @@ export class IncluirLancamento {
       .subscribe((status) => (status === 'VALID' ? this.gravar() : this.focarPrimeiroInvalido()));
   }
 
+  /** IL-15: carrega o lançamento sem permitir edição. */
+  protected visualizar(): void {
+    const lancamento = this.selecionado();
+    if (lancamento) {
+      this.carregar(lancamento);
+      this.form.disable();
+      this.modo.set({ tipo: 'visualizar', id: lancamento.id });
+    }
+  }
+
+  /** IL-15: carrega o lançamento para edição; o botão principal passa a salvar a alteração. */
+  protected alterar(): void {
+    const lancamento = this.selecionado();
+    if (lancamento) {
+      this.carregar(lancamento);
+      this.form.enable();
+      this.modo.set({ tipo: 'alterar', id: lancamento.id });
+      this.focar(() => this.campoConta().nativeElement);
+    }
+  }
+
+  /** IL-15: carrega uma cópia, que será incluída como lançamento novo. */
+  protected duplicar(): void {
+    const lancamento = this.selecionado();
+    if (lancamento) {
+      this.carregar(lancamento);
+      this.form.enable();
+      this.modo.set({ tipo: 'incluir' });
+      this.focar(() => this.campoConta().nativeElement);
+    }
+  }
+
+  /** IL-15: pede confirmação e remove o lançamento. */
+  protected excluir(): void {
+    const lancamento = this.selecionado();
+    if (!lancamento) {
+      return;
+    }
+    this.dialogo
+      .open<DialogoMensagem, DadosDialogoMensagem, boolean>(DialogoMensagem, {
+        data: {
+          titulo: 'Excluir lançamento',
+          mensagem: `Excluir o lançamento ${lancamento.documento}? Esta ação não pode ser desfeita.`,
+          confirmar: 'Excluir lançamento',
+        },
+        width: '420px',
+      })
+      .afterClosed()
+      .pipe(
+        filter(Boolean),
+        switchMap(() => this.lancamentosApi.excluir(lancamento.id)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.lancamentos.update((lista) => lista.filter((item) => item.id !== lancamento.id));
+          this.selecionadosNaGrade.set(new Set());
+          this.avisar(`Lançamento ${lancamento.documento} excluído.`);
+          const modo = this.modo();
+          if (modo.tipo !== 'incluir' && modo.id === lancamento.id) {
+            this.voltarParaInclusao();
+          }
+        },
+        error: () => this.avisar('Não foi possível excluir o lançamento.'),
+      });
+  }
+
+  /** Sai de Alterar ou Visualizar e volta ao formulário vazio de inclusão. */
+  protected voltarParaInclusao(): void {
+    this.modo.set({ tipo: 'incluir' });
+    // resetForm (e não só reset): também zera o "enviado", senão os erros reapareceriam.
+    this.formulario().resetForm();
+    this.titular.set('');
+    if (!this.somenteLeitura) {
+      this.form.enable();
+    }
+  }
+
   private gravar(): void {
+    const modo = this.modo();
+    const dados = this.paraDados();
+    const operacao: Observable<Lancamento> =
+      modo.tipo === 'alterar'
+        ? this.lancamentosApi.alterar(modo.id, dados)
+        : this.lancamentosApi.incluir(this.loteId(), dados);
+
     this.salvando.set(true);
-    this.lancamentosApi
-      .incluir(this.loteId(), this.paraDados())
+    operacao
       .pipe(
         finalize(() => this.salvando.set(false)),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
-        next: (lancamento) => {
-          this.loteId.set(lancamento.loteId);
-          this.lancamentos.update((lista) => [...lista, lancamento]);
-          this.avisos.open(`Lançamento incluído no lote ${lancamento.loteId}.`, 'Fechar', {
-            duration: 4000,
-          });
-          if (!this.manterDados.value) {
-            // resetForm (e não só reset): também zera o "enviado", senão os erros reapareceriam.
-            this.formulario().resetForm();
-            this.titular.set('');
-          }
-          this.focar(() => this.campoConta().nativeElement);
-        },
+        next: (lancamento) =>
+          modo.tipo === 'alterar'
+            ? this.concluirAlteracao(lancamento)
+            : this.concluirInclusao(lancamento),
         error: () =>
-          this.avisos.open('Não foi possível incluir o lançamento.', 'Fechar', { duration: 5000 }),
+          this.avisar(
+            modo.tipo === 'alterar'
+              ? 'Não foi possível alterar o lançamento.'
+              : 'Não foi possível incluir o lançamento.',
+          ),
       });
+  }
+
+  private concluirInclusao(lancamento: Lancamento): void {
+    this.loteId.set(lancamento.loteId);
+    this.lancamentos.update((lista) => [...lista, lancamento]);
+    this.avisar(`Lançamento incluído no lote ${lancamento.loteId}.`);
+    if (!this.manterDados.value) {
+      this.voltarParaInclusao();
+    }
+    this.focar(() => this.campoConta().nativeElement);
+  }
+
+  private concluirAlteracao(lancamento: Lancamento): void {
+    this.lancamentos.update((lista) =>
+      lista.map((item) => (item.id === lancamento.id ? lancamento : item)),
+    );
+    this.avisar(`Lançamento ${lancamento.documento} alterado.`);
+    this.voltarParaInclusao();
+    this.focar(() => this.campoConta().nativeElement);
+  }
+
+  /** Lançamento → valores da tela. O `resetForm` também limpa "tocado" e "enviado". */
+  private carregar(lancamento: Lancamento): void {
+    this.formulario().resetForm({
+      conta: {
+        numero: lancamento.contaCorrente,
+        valorCentavos: lancamento.valorCentavos,
+        historicoId: lancamento.historicoId,
+        estorno: lancamento.estorno,
+        documento: lancamento.documento,
+        descricao: lancamento.descricao,
+      },
+      documentoCsc: { paId: lancamento.documentoCsc.paId },
+    });
+    this.titular.set(lancamento.titular);
   }
 
   /**
@@ -204,6 +370,10 @@ export class IncluirLancamento {
   /** Foca depois da próxima renderização, quando os estados de erro já estão na tela. */
   private focar(alvo: () => HTMLElement | null): void {
     afterNextRender(() => alvo()?.focus(), { injector: this.injector });
+  }
+
+  private avisar(mensagem: string): void {
+    this.avisos.open(mensagem, 'Fechar', { duration: 4000 });
   }
 
   /** Converte o valor da tela para o modelo. Só é chamado com o formulário válido. */

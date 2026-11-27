@@ -56,7 +56,8 @@ de um lote. Layout e comportamento visual em [design.md](design.md).
   selecionado.
 - **IL-15** Visualizar carrega o lançamento no formulário sem permitir edição. Alterar carrega o
   lançamento para edição, e o botão principal passa a salvar a alteração. Duplicar carrega uma
-  cópia como lançamento novo. Excluir pede confirmação e remove o lançamento.
+  cópia como lançamento novo. Excluir pede confirmação e remove o lançamento. Em Alterar e
+  Visualizar, um aviso acima do formulário indica o lançamento e permite voltar à inclusão.
 - **IL-16** Ao fechar o modal, a consulta é atualizada: o lote aparece com a quantidade e o valor
   total dos lançamentos.
 

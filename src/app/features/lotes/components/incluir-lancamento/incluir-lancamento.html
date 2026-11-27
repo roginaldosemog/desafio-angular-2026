@@ -1,7 +1,25 @@
-<h2 mat-dialog-title>Incluir Lançamento</h2>
+<h2 mat-dialog-title>{{ titulo }}</h2>
 
 <mat-dialog-content>
-  <form id="form-lancamento" class="formulario" [formGroup]="form" (ngSubmit)="incluir()">
+  <!-- IL-15: deixa claro quando o formulário mostra um lançamento da grade. -->
+  @switch (modo().tipo) {
+    @case ('alterar') {
+      <div class="aviso-modo" role="status">
+        <span>Alterando o lançamento {{ documentoDoModo() }}.</span>
+        <button matButton type="button" (click)="voltarParaInclusao()">Cancelar alteração</button>
+      </div>
+    }
+    @case ('visualizar') {
+      <div class="aviso-modo" role="status">
+        <span>Visualizando o lançamento {{ documentoDoModo() }}.</span>
+        @if (!somenteLeitura) {
+          <button matButton type="button" (click)="voltarParaInclusao()">Voltar à inclusão</button>
+        }
+      </div>
+    }
+  }
+
+  <form id="form-lancamento" class="formulario" [formGroup]="form" (ngSubmit)="salvar()">
     <fieldset class="secao" formGroupName="conta">
       <legend>Conta Corrente</legend>
 
@@ -35,6 +53,7 @@
             type="button"
             class="lupa"
             aria-label="Buscar conta corrente"
+            [disabled]="form.controls.conta.disabled"
             (click)="buscarConta()"
           >
             <mat-icon aria-hidden="true">search</mat-icon>
@@ -147,15 +166,43 @@
 
   <section class="lancamentos" aria-labelledby="titulo-lancamentos">
     <h3 id="titulo-lancamentos" class="titulo-lancamentos">Lançamentos do lote</h3>
-    <app-grade-lancamentos [lancamentos]="lancamentos()" [historicos]="historicos()" />
+    <app-grade-lancamentos
+      [lancamentos]="lancamentos()"
+      [historicos]="historicos()"
+      [(selecionados)]="selecionadosNaGrade"
+    />
+
+    <!-- IL-14: ações sobre exatamente um lançamento selecionado. -->
+    <div class="acoes-grade" role="group" aria-label="Ações do lançamento selecionado">
+      <button matButton="outlined" type="button" [disabled]="!selecionado()" (click)="visualizar()">
+        Visualizar
+      </button>
+      @if (!somenteLeitura) {
+        <button matButton="outlined" type="button" [disabled]="!selecionado()" (click)="alterar()">
+          Alterar
+        </button>
+        <button matButton="outlined" type="button" [disabled]="!selecionado()" (click)="excluir()">
+          Excluir
+        </button>
+        <button matButton="outlined" type="button" [disabled]="!selecionado()" (click)="duplicar()">
+          Duplicar
+        </button>
+      }
+    </div>
   </section>
 </mat-dialog-content>
 
 <mat-dialog-actions class="rodape">
-  <mat-checkbox class="manter-dados" [formControl]="manterDados">Manter dados na tela</mat-checkbox>
-  <!-- O botão fica fora do <form>; o atributo "form" o liga a ele, como envio. -->
-  <button matButton="filled" type="submit" form="form-lancamento" [disabled]="salvando()">
-    Incluir
-  </button>
+  @if (!somenteLeitura) {
+    <mat-checkbox class="manter-dados" [formControl]="manterDados">
+      Manter dados na tela
+    </mat-checkbox>
+  }
+  @if (podeSalvar()) {
+    <!-- O botão fica fora do <form>; o atributo "form" o liga a ele, como envio. -->
+    <button matButton="filled" type="submit" form="form-lancamento" [disabled]="salvando()">
+      {{ textoSalvar() }}
+    </button>
+  }
   <button matButton="outlined" type="button" mat-dialog-close>Fechar</button>
 </mat-dialog-actions>

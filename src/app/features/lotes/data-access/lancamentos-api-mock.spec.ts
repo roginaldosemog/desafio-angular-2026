@@ -123,4 +123,47 @@ describe('LancamentosApiMock', () => {
 
     expect(await firstValueFrom(lancamentos.listar(2))).toEqual([]);
   });
+
+  describe('alterar', () => {
+    it('IL-15: altera o lançamento e recalcula o valor do lote', async () => {
+      const [original] = LANCAMENTOS_MOCK.filter((item) => item.loteId === 2);
+      const antes = await lote(2);
+
+      const alterado = await firstValueFrom(
+        lancamentos.alterar(
+          original.id,
+          dados({ valorCentavos: original.valorCentavos + 100, documento: 'NOVO' }),
+        ),
+      );
+
+      expect(alterado).toMatchObject({ id: original.id, loteId: 2, documento: 'NOVO' });
+      expect((await lote(2)).valorCentavos).toBe(antes.valorCentavos + 100);
+    });
+
+    it('IL-15: recusa alterar lançamento de lote que não está Aberto', async () => {
+      const enviado = LOTES_MOCK.find((item) => item.situacao === 'ENVIADO');
+      const [doEnviado] = LANCAMENTOS_MOCK.filter((item) => item.loteId === enviado?.id);
+
+      await expect(firstValueFrom(lancamentos.alterar(doEnviado.id, dados()))).rejects.toThrow();
+    });
+  });
+
+  describe('excluir', () => {
+    it('IL-15: remove o lançamento e recalcula o lote', async () => {
+      const [original] = LANCAMENTOS_MOCK.filter((item) => item.loteId === 2);
+      const antes = await lote(2);
+
+      await firstValueFrom(lancamentos.excluir(original.id));
+
+      expect(await firstValueFrom(lancamentos.listar(2))).not.toContainEqual(original);
+      expect((await lote(2)).quantidadeLancamentos).toBe(antes.quantidadeLancamentos - 1);
+    });
+
+    it('IL-15: recusa excluir lançamento de lote que não está Aberto', async () => {
+      const confirmado = LOTES_MOCK.find((item) => item.situacao === 'CONFIRMADO');
+      const [doConfirmado] = LANCAMENTOS_MOCK.filter((item) => item.loteId === confirmado?.id);
+
+      await expect(firstValueFrom(lancamentos.excluir(doConfirmado.id))).rejects.toThrow();
+    });
+  });
 });

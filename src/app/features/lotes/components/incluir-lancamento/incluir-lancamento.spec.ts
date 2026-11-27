@@ -16,9 +16,12 @@ import { CadastrosApi } from '../../data-access/cadastros-api';
 import { LancamentosApi } from '../../data-access/lancamentos-api';
 import { ContaCorrente } from '../../models/cadastros';
 import { DadosLancamento, Lancamento } from '../../models/lancamento';
-import { IncluirLancamento } from './incluir-lancamento';
+import { Lote } from '../../models/lote';
+import { criarLote } from '../../testing/fabricas';
+import { DadosModalLancamento, IncluirLancamento } from './incluir-lancamento';
 
 const CONTA: ContaCorrente = { numero: '44444', titular: 'Ana Paula Costa' };
+const LOTE: Lote = criarLote({ id: 5, situacao: 'ABERTO' });
 
 /** O que o "servidor" devolve: os dados enviados mais o que ele define. */
 function gravado(loteId: number | null, dados: DadosLancamento, id: number): Lancamento {
@@ -36,17 +39,25 @@ describe('IncluirLancamento', () => {
   let fixture: ComponentFixture<IncluirLancamento>;
   let loader: HarnessLoader;
   let incluir: ReturnType<typeof vi.fn<LancamentosApi['incluir']>>;
+  let alterar: ReturnType<typeof vi.fn<LancamentosApi['alterar']>>;
+  let excluir: ReturnType<typeof vi.fn<LancamentosApi['excluir']>>;
+  let listar: ReturnType<typeof vi.fn<LancamentosApi['listar']>>;
 
   async function criar(
     opcoes: {
       buscarConta?: (numero: string) => Observable<ContaCorrente | null>;
       incluir?: LancamentosApi['incluir'];
+      dados?: DadosModalLancamento;
+      doLote?: readonly Lancamento[];
     } = {},
   ) {
     let ids = 100;
     incluir = vi.fn<LancamentosApi['incluir']>(
       opcoes.incluir ?? ((loteId, dados) => of(gravado(loteId, dados, ++ids))),
     );
+    alterar = vi.fn<LancamentosApi['alterar']>((id, dados) => of(gravado(LOTE.id, dados, id)));
+    excluir = vi.fn<LancamentosApi['excluir']>(() => of(undefined));
+    listar = vi.fn<LancamentosApi['listar']>(() => of(opcoes.doLote ?? []));
     const cadastros: CadastrosApi = {
       listarInstituicoes: () => of([]),
       buscarContaCorrente:
@@ -59,10 +70,13 @@ describe('IncluirLancamento', () => {
       providers: [
         { provide: LOCALE_ID, useValue: 'pt-BR' },
         { provide: MATERIAL_ANIMATIONS, useValue: { animationsDisabled: true } },
-        { provide: MAT_DIALOG_DATA, useValue: { loteId: null } },
+        { provide: MAT_DIALOG_DATA, useValue: opcoes.dados ?? { lote: null } },
         { provide: MatDialogRef, useValue: { close: vi.fn() } },
         { provide: CadastrosApi, useValue: cadastros },
-        { provide: LancamentosApi, useValue: { incluir, listar: () => of([]) } },
+        {
+          provide: LancamentosApi,
+          useValue: { incluir, alterar, excluir, listar } satisfies LancamentosApi,
+        },
       ],
     });
     fixture = TestBed.createComponent(IncluirLancamento);
@@ -258,5 +272,132 @@ describe('IncluirLancamento', () => {
 
     expect(await (await campo('documento')).getValue()).toBe('DOC-9');
     expect(await (await loader.getHarness(MatTableHarness)).getRows()).toHaveLength(0);
+  });
+
+  describe('lançamentos do lote', () => {
+    const PRIMEIRO = gravado(LOTE.id, { ...DADOS_ESPERADOS, documento: 'DOC-1' }, 1);
+    const SEGUNDO = gravado(
+      LOTE.id,
+      { ...DADOS_ESPERADOS, documento: 'DOC-2', valorCentavos: 900 },
+      2,
+    );
+    const abrirLote = (somenteLeitura = false) =>
+      criar({ dados: { lote: LOTE, somenteLeitura }, doLote: [PRIMEIRO, SEGUNDO] });
+    const raiz = () => TestbedHarnessEnvironment.documentRootLoader(fixture);
+
+    /** O aria-label do mat-checkbox fica no input interno: a busca é pela API do harness. */
+    async function selecionar(documento: string) {
+      for (const caixa of await loader.getAllHarnesses(MatCheckboxHarness)) {
+        if ((await caixa.getAriaLabel()) === `Selecionar lançamento ${documento}`) {
+          await caixa.check();
+          return;
+        }
+      }
+      throw new Error(`Lançamento ${documento} não está na grade.`);
+    }
+
+    const habilitados = async () => {
+      const resultado: string[] = [];
+      for (const nome of ['Visualizar', 'Alterar', 'Excluir', 'Duplicar']) {
+        const botoes = await loader.getAllHarnesses(MatButtonHarness.with({ text: nome }));
+        if (botoes.length > 0 && !(await botoes[0].isDisabled())) {
+          resultado.push(nome);
+        }
+      }
+      return resultado;
+    };
+
+    it('CL-16: num lote existente, mostra os lançamentos dele', async () => {
+      await abrirLote();
+
+      expect(listar).toHaveBeenCalledWith(LOTE.id);
+      expect(await (await loader.getHarness(MatTableHarness)).getRows()).toHaveLength(2);
+    });
+
+    it('IL-14: as ações da grade exigem exatamente um lançamento selecionado', async () => {
+      await abrirLote();
+      expect(await habilitados()).toEqual([]);
+
+      await selecionar('DOC-1');
+      expect(await habilitados()).toEqual(['Visualizar', 'Alterar', 'Excluir', 'Duplicar']);
+
+      await selecionar('DOC-2');
+      expect(await habilitados()).toEqual([]);
+    });
+
+    it('IL-15: Visualizar carrega o lançamento sem permitir edição', async () => {
+      await abrirLote();
+      await selecionar('DOC-1');
+
+      await (await botao('Visualizar')).click();
+
+      const documento = await campo('documento');
+      expect(await documento.getValue()).toBe('DOC-1');
+      expect(await documento.isDisabled()).toBe(true);
+      expect(await loader.getAllHarnesses(MatButtonHarness.with({ text: 'Incluir' }))).toEqual([]);
+    });
+
+    it('IL-15: Alterar carrega para edição e o botão principal salva a alteração', async () => {
+      await abrirLote();
+      await selecionar('DOC-1');
+      await (await botao('Alterar')).click();
+      await (await campo('documento')).setValue('DOC-1-ALTERADO');
+
+      await (await botao('Salvar alteração')).click();
+
+      expect(alterar).toHaveBeenCalledWith(
+        PRIMEIRO.id,
+        expect.objectContaining({ documento: 'DOC-1-ALTERADO' }),
+      );
+      const grade = await loader.getHarness(MatTableHarness);
+      expect((await grade.getCellTextByColumnName())['documento'].text).toEqual([
+        'DOC-1-ALTERADO',
+        'DOC-2',
+      ]);
+      expect(await (await campo('documento')).getValue()).toBe('');
+      expect(await botao('Incluir')).toBeTruthy();
+    });
+
+    it('IL-15: Duplicar carrega uma cópia que é incluída como lançamento novo', async () => {
+      await abrirLote();
+      await selecionar('DOC-2');
+      await (await botao('Duplicar')).click();
+      expect(await (await campo('documento')).getValue()).toBe('DOC-2');
+
+      await (await botao('Incluir')).click();
+
+      expect(incluir).toHaveBeenCalledWith(
+        LOTE.id,
+        expect.objectContaining({ documento: 'DOC-2', valorCentavos: 900 }),
+      );
+      expect(await (await loader.getHarness(MatTableHarness)).getRows()).toHaveLength(3);
+    });
+
+    it('IL-15: Excluir pede confirmação e remove o lançamento da grade', async () => {
+      await abrirLote();
+      await selecionar('DOC-1');
+
+      await (await botao('Excluir')).click();
+      const confirmar = await raiz().getHarness(
+        MatButtonHarness.with({ text: 'Excluir lançamento' }),
+      );
+      await confirmar.click();
+      await fixture.whenStable();
+
+      expect(excluir).toHaveBeenCalledWith(PRIMEIRO.id);
+      expect(await (await loader.getHarness(MatTableHarness)).getRows()).toHaveLength(1);
+    });
+
+    it('CL-18: no modo somente leitura, só é possível visualizar', async () => {
+      await abrirLote(true);
+      await selecionar('DOC-1');
+
+      expect(await habilitados()).toEqual(['Visualizar']);
+      expect(await loader.getAllHarnesses(MatButtonHarness.with({ text: 'Incluir' }))).toEqual([]);
+      expect(await (await campo('documento')).isDisabled()).toBe(true);
+      const lupa = await loader.getHarness(MatButtonHarness.with({ selector: '.lupa' }));
+      expect(await lupa.isDisabled()).toBe(true);
+      expect(texto('[mat-dialog-title]')).toBe('Visualizar Lote 5');
+    });
   });
 });

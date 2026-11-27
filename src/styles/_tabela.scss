@@ -4,6 +4,9 @@
 
 @mixin estilos {
   .area-rolavel {
+    // Contém elementos com posição absoluta (como os textos só para leitor de tela): sem isso,
+    // eles se posicionam pelo ancestral posicionado mais próximo e podem criar rolagem fora daqui.
+    position: relative;
     overflow-x: auto;
     border: 1px solid var(--app-border);
     border-radius: var(--app-raio-painel);

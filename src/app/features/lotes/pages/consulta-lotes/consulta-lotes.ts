@@ -170,23 +170,27 @@ export class ConsultaLotes {
         });
         break;
       case 'incluir':
-        this.abrirModalLancamentos(null);
+        this.abrirModalLancamentos({ lote: null });
         break;
       case 'alterar':
+        this.abrirModalLancamentos({ lote: lotes[0] });
+        break;
       case 'visualizar':
-        // Abrem o modal com os lançamentos do lote (CL-16, CL-18), no próximo passo.
+        this.abrirModalLancamentos({ lote: lotes[0], somenteLeitura: true });
         break;
     }
   }
 
-  /** CL-15: lote novo (`null`). Ao fechar, a consulta é refeita para mostrar o lote (IL-16). */
-  private abrirModalLancamentos(loteId: number | null): void {
+  /**
+   * CL-15 (lote novo), CL-16 (Alterar) e CL-18 (Visualizar). Ao fechar, a consulta é refeita
+   * para mostrar o lote com a quantidade e o valor atualizados (IL-16).
+   */
+  private abrirModalLancamentos(dados: DadosModalLancamento): void {
     this.dialogo
       .open<IncluirLancamento, DadosModalLancamento>(IncluirLancamento, {
-        data: { loteId },
+        data: dados,
         width: 'min(640px, 100vw)',
         maxWidth: '100vw',
-        maxHeight: '90vh',
         // IL-01: o foco começa no primeiro campo, a Conta Corrente.
         autoFocus: '#conta-corrente',
         // O modal usa as APIs registradas na rota de lotes: precisa do injetor da página. Sem

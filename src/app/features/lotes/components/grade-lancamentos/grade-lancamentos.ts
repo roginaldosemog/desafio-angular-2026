@@ -1,4 +1,5 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, model } from '@angular/core';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTableModule } from '@angular/material/table';
 import { ReaisPipe } from '../../../../shared/pipes/reais';
 import { Historico } from '../../models/cadastros';
@@ -15,18 +16,20 @@ interface LinhaGrade {
   readonly situacao: string;
 }
 
-/** Grade dos lançamentos do lote (IL-14), dentro do modal. */
+/** Grade dos lançamentos do lote (IL-14), dentro do modal. A seleção é um `model()`, como na tabela de lotes. */
 @Component({
   selector: 'app-grade-lancamentos',
-  imports: [MatTableModule, ReaisPipe],
+  imports: [MatCheckboxModule, MatTableModule, ReaisPipe],
   templateUrl: './grade-lancamentos.html',
   styleUrl: './grade-lancamentos.scss',
 })
 export class GradeLancamentos {
   readonly lancamentos = input.required<readonly Lancamento[]>();
   readonly historicos = input.required<readonly Historico[]>();
+  readonly selecionados = model<ReadonlySet<number>>(new Set());
 
   protected readonly colunas = [
+    'selecao',
     'contaCorrente',
     'titular',
     'historico',
@@ -51,4 +54,12 @@ export class GradeLancamentos {
       situacao: ROTULO_SITUACAO_LANCAMENTO[lancamento.situacao],
     }));
   });
+
+  protected alternar(id: number): void {
+    const selecao = new Set(this.selecionados());
+    if (!selecao.delete(id)) {
+      selecao.add(id);
+    }
+    this.selecionados.set(selecao);
+  }
 }
