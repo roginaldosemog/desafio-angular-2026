@@ -1,4 +1,12 @@
 <section class="card" aria-label="Consulta de Lotes">
   <app-filtros-lotes [instituicoes]="instituicoes()" (pesquisar)="aoPesquisar($event)" />
-  <app-tabela-lotes [lotes]="lotes()" [(selecionados)]="selecionados" />
+  <div>
+    <app-tabela-lotes [lotes]="lotes()" [(selecionados)]="selecionados" />
+    <app-paginacao
+      [pagina]="paginaAtual()"
+      [total]="total()"
+      [tamanhoPagina]="tamanhoPagina"
+      (trocarPagina)="aoTrocarPagina($event)"
+    />
+  </div>
 </section>

@@ -1,0 +1,53 @@
+// Regra DS-19 de docs/specs/design.md.
+:host {
+  display: block;
+}
+
+.paginacao {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--app-espaco-2);
+  padding-top: var(--app-espaco-4);
+}
+
+.botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--app-pagina-inativa);
+  color: var(--app-header);
+  font: 600 12px / 1 var(--app-font);
+  cursor: pointer;
+
+  mat-icon {
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+  }
+
+  &:hover:not(:disabled, .atual) {
+    background: var(--app-linha-selecionada);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--app-primary);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    color: var(--app-muted);
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+.atual {
+  background: var(--app-primary);
+  color: var(--app-surface);
+}

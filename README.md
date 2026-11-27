@@ -31,6 +31,8 @@ Angular 22.3 · Angular Material 22.3 · TypeScript 6.0 · RxJS 7.8 · Vitest 5.
 - **Estado com signals:** a página guarda filtros, página e seleção em signals. A pesquisa usa
   `rxResource` (estável no Angular 22), que descarta a resposta anterior; a seleção da tabela é
   um `model()`.
+- **Paginação própria** com número de página, porque o `MatPaginator` não mostra os números. Na
+  troca de página, um `linkedSignal` mantém a página anterior na tela até a nova chegar.
 - **Pipes pt-BR:** `date`, `reais` (centavos → R$) e `rotuloSituacao`.
 - **Modelos imutáveis** (`readonly`), valores em centavos inteiros e datas no formato
   `AAAA-MM-DD` (tipo `DataIso`), sem fuso horário.

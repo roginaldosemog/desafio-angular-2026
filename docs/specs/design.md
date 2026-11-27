@@ -14,6 +14,7 @@ estrutura e proporção, não pixel perfect.
 | Linhas de tabela, item ativo do menu         | `#effaf8` | `--app-highlight`                |
 | Linha da tabela com o mouse em cima          | `#e0f4f1` | `--app-linha-hover` (novo)       |
 | Linha da tabela selecionada                  | `#cdeee9` | `--app-linha-selecionada` (novo) |
+| Botão de página inativo                      | `#eeeeee` | `--app-pagina-inativa` (novo)    |
 | Barra de ações                               | `#ebecf1` | `--app-barra-acoes` (novo)       |
 | Botão secundário                             | `#f0f0f2` | `--app-botao-secundario` (novo)  |
 | Fundo da página                              | `#e8e8eb` | `--app-background`               |

@@ -2,13 +2,13 @@ import '@angular/common/locales/global/pt';
 import { HarnessLoader } from '@angular/cdk/testing';
 import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
 import { LOCALE_ID } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatButtonHarness } from '@angular/material/button/testing';
 import { MatCheckboxHarness } from '@angular/material/checkbox/testing';
 import { MatInputHarness } from '@angular/material/input/testing';
 import { MatSelectHarness } from '@angular/material/select/testing';
 import { MatTableHarness } from '@angular/material/table/testing';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, of, Subject, throwError } from 'rxjs';
 import { provideDatasPtBr } from '../../../../shared/datas/datas-pt-br';
 import { Pagina } from '../../../../shared/models/pagina';
 import { FILTROS_PADRAO } from '../../components/filtros-lotes/filtros-lotes';
@@ -24,11 +24,15 @@ const INSTITUICOES: readonly Instituicao[] = [
   { codigo: '0002', nome: 'SICOOB CENTRAL' },
 ];
 
-function pagina(itens: readonly Lote[]): Pagina<Lote> {
-  return { itens, total: itens.length, pagina: 1, tamanhoPagina: 10 };
+function pagina(itens: readonly Lote[], total = itens.length): Pagina<Lote> {
+  return { itens, total, pagina: 1, tamanhoPagina: 10 };
 }
 
+const lotesDe = (primeiro: number, quantidade: number) =>
+  Array.from({ length: quantidade }, (_, indice) => criarLote({ id: primeiro + indice }));
+
 describe('ConsultaLotes', () => {
+  let fixture: ComponentFixture<ConsultaLotes>;
   let loader: HarnessLoader;
   let pesquisar: ReturnType<typeof vi.fn<LotesApi['pesquisar']>>;
 
@@ -36,12 +40,16 @@ describe('ConsultaLotes', () => {
     opcoes: {
       instituicoes?: Observable<readonly Instituicao[]>;
       lotes?: readonly Lote[];
+      total?: number;
+      pesquisar?: LotesApi['pesquisar'];
     } = {},
   ) {
     const cadastros: CadastrosApi = {
       listarInstituicoes: () => opcoes.instituicoes ?? of(INSTITUICOES),
     };
-    pesquisar = vi.fn<LotesApi['pesquisar']>(() => of(pagina(opcoes.lotes ?? [])));
+    pesquisar = vi.fn<LotesApi['pesquisar']>(
+      opcoes.pesquisar ?? (() => of(pagina(opcoes.lotes ?? [], opcoes.total))),
+    );
     TestBed.configureTestingModule({
       imports: [ConsultaLotes],
       providers: [
@@ -51,7 +59,7 @@ describe('ConsultaLotes', () => {
         { provide: LotesApi, useValue: { pesquisar } satisfies LotesApi },
       ],
     });
-    const fixture = TestBed.createComponent(ConsultaLotes);
+    fixture = TestBed.createComponent(ConsultaLotes);
     loader = TestbedHarnessEnvironment.loader(fixture);
     await fixture.whenStable();
   }
@@ -95,5 +103,51 @@ describe('ConsultaLotes', () => {
     const marcadas = await Promise.all(caixas.map((caixa) => caixa.isChecked()));
     expect(marcadas).toEqual([false, false, false]);
     expect(pesquisar).toHaveBeenCalledTimes(2);
+  });
+
+  describe('paginação', () => {
+    const botao = (nome: string): HTMLButtonElement =>
+      fixture.nativeElement.querySelector(`button[aria-label="${nome}"]`);
+    const linhas = () => fixture.nativeElement.querySelectorAll('tr.mat-mdc-row');
+
+    it('CL-13: mostra uma página para cada 10 lotes encontrados', async () => {
+      await criar({ lotes: lotesDe(1, 10), total: 18 });
+
+      expect(botao('Página 1')).toBeTruthy();
+      expect(botao('Página 2')).toBeTruthy();
+      expect(botao('Página 3')).toBeNull();
+    });
+
+    it('CL-12, CL-13: trocar de página pesquisa a página pedida com os mesmos filtros e limpa a seleção', async () => {
+      await criar({ lotes: lotesDe(1, 10), total: 18 });
+      const [, primeiro] = await loader.getAllHarnesses(MatCheckboxHarness);
+      await primeiro.check();
+
+      botao('Página 2').click();
+      await fixture.whenStable();
+
+      expect(pesquisar).toHaveBeenLastCalledWith(FILTROS_PADRAO, 2, 10);
+      const caixas = await loader.getAllHarnesses(MatCheckboxHarness);
+      const marcadas = await Promise.all(caixas.map((caixa) => caixa.isChecked()));
+      expect(marcadas.some(Boolean)).toBe(false);
+    });
+
+    it('mantém os lotes atuais na tela enquanto a próxima página carrega', async () => {
+      const segunda = new Subject<Pagina<Lote>>();
+      await criar({
+        pesquisar: (_filtros, numero) => (numero === 1 ? of(pagina(lotesDe(1, 10), 18)) : segunda),
+      });
+
+      botao('Página 2').click();
+      // Sem whenStable: ele esperaria a resposta, que o Subject ainda está segurando.
+      fixture.detectChanges();
+      expect(linhas()).toHaveLength(10);
+      expect(botao('Página 2')).toBeTruthy();
+
+      segunda.next(pagina(lotesDe(11, 8), 18));
+      segunda.complete();
+      await fixture.whenStable();
+      expect(linhas()).toHaveLength(8);
+    });
   });
 });
