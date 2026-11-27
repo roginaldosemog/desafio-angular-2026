@@ -16,6 +16,7 @@ import { provideDatasPtBr } from '../../../../shared/datas/datas-pt-br';
 import { Pagina } from '../../../../shared/models/pagina';
 import { FILTROS_PADRAO } from '../../components/filtros-lotes/filtros-lotes';
 import { CadastrosApi } from '../../data-access/cadastros-api';
+import { LancamentosApi } from '../../data-access/lancamentos-api';
 import { LotesApi } from '../../data-access/lotes-api';
 import { Instituicao } from '../../models/cadastros';
 import { Lote } from '../../models/lote';
@@ -55,6 +56,9 @@ describe('ConsultaLotes', () => {
   ) {
     const cadastros: CadastrosApi = {
       listarInstituicoes: () => opcoes.instituicoes ?? of(INSTITUICOES),
+      buscarContaCorrente: () => of(null),
+      listarHistoricos: () => of([]),
+      listarPontosAtendimento: () => of([]),
     };
     pesquisar = vi.fn<LotesApi['pesquisar']>(
       opcoes.pesquisar ?? (() => of(pagina(opcoes.lotes ?? [], opcoes.total))),
@@ -70,6 +74,10 @@ describe('ConsultaLotes', () => {
         { provide: MATERIAL_ANIMATIONS, useValue: { animationsDisabled: true } },
         provideDatasPtBr(),
         { provide: CadastrosApi, useValue: cadastros },
+        {
+          provide: LancamentosApi,
+          useValue: { listar: () => of([]), incluir: vi.fn() } satisfies LancamentosApi,
+        },
         {
           provide: LotesApi,
           useValue: { pesquisar, enviar, confirmar, excluir } satisfies LotesApi,
@@ -382,6 +390,27 @@ describe('ConsultaLotes', () => {
 
       expect(excluir).toHaveBeenCalledWith(11);
       expect(pesquisar).toHaveBeenLastCalledWith(FILTROS_PADRAO, 1, 10);
+    });
+
+    it('CL-15, IL-01: Incluir abre o modal de lançamento com o foco no primeiro campo', async () => {
+      await criar({ lotes: LOTES });
+
+      await acionar('Incluir');
+
+      const dialogo = await raiz().getHarness(MatDialogHarness);
+      expect(await dialogo.getTitleText()).toBe('Incluir Lançamento');
+      expect(document.activeElement?.id).toBe('conta-corrente');
+    });
+
+    it('IL-16: ao fechar o modal, a consulta é refeita', async () => {
+      await criar({ lotes: LOTES });
+      await acionar('Incluir');
+      const dialogo = await raiz().getHarness(MatDialogHarness);
+
+      await (await dialogo.getHarness(MatButtonHarness.with({ text: 'Fechar' }))).click();
+      await fixture.whenStable();
+
+      expect(pesquisar).toHaveBeenCalledTimes(2);
     });
 
     it('se a ação falhar, avisa e mantém a seleção para tentar de novo', async () => {

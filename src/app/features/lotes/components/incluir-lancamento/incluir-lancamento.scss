@@ -1,0 +1,97 @@
+// Regras DS-20 a DS-22 de docs/specs/design.md.
+:host {
+  display: block;
+}
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-espaco-4);
+}
+
+.secao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-espaco-3);
+  margin: 0;
+  padding: var(--app-espaco-4);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-raio-painel);
+
+  legend {
+    padding: 0 var(--app-espaco-1);
+    color: var(--app-header);
+    font-size: 13px;
+    font-weight: 600;
+  }
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-espaco-1);
+}
+
+.rotulo {
+  color: var(--app-header);
+  font-weight: 600;
+}
+
+.obrigatorio {
+  color: var(--app-error);
+}
+
+mat-form-field {
+  width: 100%;
+}
+
+.linha-conta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--app-espaco-1) var(--app-espaco-2);
+}
+
+.largura-conta {
+  width: 160px;
+}
+
+.largura-media {
+  max-width: 200px;
+}
+
+.largura-situacao {
+  max-width: 280px;
+}
+
+// O titular fica alinhado ao centro do campo de 36 px.
+.titular {
+  align-self: center;
+  color: var(--app-muted);
+  font-size: 11px;
+}
+
+.titulo-lancamentos {
+  margin: var(--app-espaco-4) 0 var(--app-espaco-2);
+  color: var(--app-header);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.rodape {
+  gap: var(--app-espaco-2);
+}
+
+// "Manter dados na tela" à esquerda, botões à direita (DS-20).
+.manter-dados {
+  margin-right: auto;
+}
+
+@media (max-width: 599px) {
+  .largura-conta,
+  .largura-media,
+  .largura-situacao {
+    width: 100%;
+    max-width: none;
+  }
+}

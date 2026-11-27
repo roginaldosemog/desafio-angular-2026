@@ -1,4 +1,12 @@
-import { Component, computed, DestroyRef, inject, linkedSignal, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  DestroyRef,
+  inject,
+  Injector,
+  linkedSignal,
+  signal,
+} from '@angular/core';
 import { rxResource, takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
@@ -14,6 +22,10 @@ import { Paginacao } from '../../../../shared/components/paginacao/paginacao';
 import { Pagina } from '../../../../shared/models/pagina';
 import { BarraAcoes } from '../../components/barra-acoes/barra-acoes';
 import { FILTROS_PADRAO, FiltrosLotes } from '../../components/filtros-lotes/filtros-lotes';
+import {
+  DadosModalLancamento,
+  IncluirLancamento,
+} from '../../components/incluir-lancamento/incluir-lancamento';
 import { TabelaLotes } from '../../components/tabela-lotes/tabela-lotes';
 import { CadastrosApi } from '../../data-access/cadastros-api';
 import { LotesApi } from '../../data-access/lotes-api';
@@ -55,6 +67,7 @@ export class ConsultaLotes {
   private readonly dialogo = inject(MatDialog);
   private readonly avisos = inject(MatSnackBar);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly injector = inject(Injector);
 
   /** Se a lista falhar, os filtros continuam utilizáveis com os valores padrão. */
   protected readonly instituicoes = toSignal(
@@ -157,11 +170,31 @@ export class ConsultaLotes {
         });
         break;
       case 'incluir':
+        this.abrirModalLancamentos(null);
+        break;
       case 'alterar':
       case 'visualizar':
-        // Abrem o modal de lançamentos (CL-15, CL-16, CL-18), nos próximos passos.
+        // Abrem o modal com os lançamentos do lote (CL-16, CL-18), no próximo passo.
         break;
     }
+  }
+
+  /** CL-15: lote novo (`null`). Ao fechar, a consulta é refeita para mostrar o lote (IL-16). */
+  private abrirModalLancamentos(loteId: number | null): void {
+    this.dialogo
+      .open<IncluirLancamento, DadosModalLancamento>(IncluirLancamento, {
+        data: { loteId },
+        width: 'min(640px, 100vw)',
+        maxWidth: '100vw',
+        maxHeight: '90vh',
+        // IL-01: o foco começa no primeiro campo, a Conta Corrente.
+        autoFocus: '#conta-corrente',
+        // O modal usa as APIs registradas na rota de lotes: precisa do injetor da página. Sem
+        // isso, o MatDialog usaria o injetor da raiz, onde essas APIs não existem.
+        injector: this.injector,
+      })
+      .afterClosed()
+      .subscribe(() => this.resultado.reload());
   }
 
   private confirmarExclusao(lote: Lote): void {

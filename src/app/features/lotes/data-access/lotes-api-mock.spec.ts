@@ -5,6 +5,7 @@ import { Lote } from '../models/lote';
 import { criarFiltros } from '../testing/fabricas';
 import { LotesApi } from './lotes-api';
 import { LotesApiMock } from './lotes-api-mock';
+import { BancoEmMemoria } from './mock/banco-em-memoria';
 import { USUARIO_LOGADO } from './mock/cadastros.mock';
 import { LOTES_MOCK } from './mock/lotes.mock';
 import { ATRASO_SIMULADO_MS, RELOGIO_SIMULADO, ServidorSimulado } from './mock/servidor-simulado';
@@ -20,6 +21,7 @@ describe('LotesApiMock', () => {
       providers: [
         provideRouter([]),
         ServidorSimulado,
+        BancoEmMemoria,
         { provide: ATRASO_SIMULADO_MS, useValue: 0 },
         { provide: RELOGIO_SIMULADO, useValue: () => AGORA },
         { provide: LotesApi, useClass: LotesApiMock },

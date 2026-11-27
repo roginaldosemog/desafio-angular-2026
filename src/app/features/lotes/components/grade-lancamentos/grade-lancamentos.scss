@@ -1,0 +1,8 @@
+// Mesmo visual da tabela de lotes (src/styles/_tabela.scss).
+@use 'tabela';
+
+:host {
+  display: block;
+}
+
+@include tabela.estilos;

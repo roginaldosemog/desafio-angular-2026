@@ -1,8 +1,8 @@
 import { inject, Injectable, InjectionToken } from '@angular/core';
 import { Router } from '@angular/router';
 import { delay, map, Observable, of } from 'rxjs';
-import { paraDataHoraIso } from '../../../../shared/datas/datas-pt-br';
-import { DataHoraIso } from '../../../../shared/models/datas';
+import { paraDataHoraIso, paraDataIso } from '../../../../shared/datas/datas-pt-br';
+import { DataHoraIso, DataIso } from '../../../../shared/models/datas';
 
 /** Tempo de resposta simulado. Os testes o substituem para não depender de relógio. */
 export const ATRASO_SIMULADO_MS = new InjectionToken<number>('ATRASO_SIMULADO_MS', {
@@ -27,6 +27,11 @@ export class ServidorSimulado {
   /** Data e hora atuais do servidor, no formato do modelo. */
   agora(): DataHoraIso {
     return paraDataHoraIso(this.relogio());
+  }
+
+  /** Data de hoje no servidor, no formato do modelo. */
+  hoje(): DataIso {
+    return paraDataIso(this.relogio());
   }
 
   /**

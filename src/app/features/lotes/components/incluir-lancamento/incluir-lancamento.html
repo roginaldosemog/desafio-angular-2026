@@ -1,0 +1,161 @@
+<h2 mat-dialog-title>Incluir Lançamento</h2>
+
+<mat-dialog-content>
+  <form id="form-lancamento" class="formulario" [formGroup]="form" (ngSubmit)="incluir()">
+    <fieldset class="secao" formGroupName="conta">
+      <legend>Conta Corrente</legend>
+
+      <div class="campo">
+        <label class="rotulo" for="conta-corrente">
+          Conta Corrente <span class="obrigatorio" aria-hidden="true">*</span>
+        </label>
+        <div class="linha-conta">
+          <mat-form-field class="campo-conta-corrente largura-conta">
+            <input
+              #campoConta
+              matInput
+              id="conta-corrente"
+              class="conta-corrente"
+              formControlName="numero"
+              inputmode="numeric"
+              aria-describedby="titular-conta"
+              (keydown.enter)="buscarConta($event)"
+            />
+            @let numero = form.controls.conta.controls.numero;
+            @if (numero.hasError('required')) {
+              <mat-error>Informe a conta corrente.</mat-error>
+            } @else if (numero.hasError('pattern')) {
+              <mat-error>Use só números.</mat-error>
+            } @else if (numero.hasError('contaNaoEncontrada')) {
+              <mat-error>Conta corrente não encontrada.</mat-error>
+            }
+          </mat-form-field>
+          <button
+            matIconButton
+            type="button"
+            class="lupa"
+            aria-label="Buscar conta corrente"
+            (click)="buscarConta()"
+          >
+            <mat-icon aria-hidden="true">search</mat-icon>
+          </button>
+          <span id="titular-conta" class="titular" aria-live="polite">{{ titular() }}</span>
+        </div>
+      </div>
+
+      <div class="campo">
+        <label class="rotulo" for="valor">
+          Valor <span class="obrigatorio" aria-hidden="true">*</span>
+        </label>
+        <mat-form-field class="campo-valor largura-media">
+          <input
+            matInput
+            appCampoMonetario
+            id="valor"
+            class="valor"
+            formControlName="valorCentavos"
+            placeholder="R$ 0,00"
+          />
+          @if (form.controls.conta.controls.valorCentavos.hasError('required')) {
+            <mat-error>Informe o valor.</mat-error>
+          } @else {
+            <mat-error>O valor deve ser maior que zero.</mat-error>
+          }
+        </mat-form-field>
+      </div>
+
+      <div class="campo">
+        <label class="rotulo" id="rotulo-historico" for="historico">
+          Histórico <span class="obrigatorio" aria-hidden="true">*</span>
+        </label>
+        <mat-form-field class="campo-historico">
+          <mat-select
+            id="historico"
+            class="historico"
+            formControlName="historicoId"
+            aria-labelledby="rotulo-historico"
+          >
+            @for (historico of historicos(); track historico.id) {
+              <mat-option [value]="historico.id">{{ historico.descricao }}</mat-option>
+            }
+          </mat-select>
+          <mat-error>Escolha o histórico.</mat-error>
+        </mat-form-field>
+      </div>
+
+      <mat-checkbox class="estorno" formControlName="estorno">Estorno</mat-checkbox>
+
+      <div class="campo">
+        <label class="rotulo" for="documento">
+          Documento <span class="obrigatorio" aria-hidden="true">*</span>
+        </label>
+        <mat-form-field class="campo-documento largura-media">
+          <input
+            matInput
+            id="documento"
+            class="documento"
+            formControlName="documento"
+            maxlength="20"
+          />
+          <mat-error>Informe o documento.</mat-error>
+        </mat-form-field>
+      </div>
+
+      <div class="campo">
+        <label class="rotulo" for="descricao">Descrição</label>
+        <mat-form-field class="campo-descricao">
+          <textarea
+            matInput
+            id="descricao"
+            class="descricao"
+            formControlName="descricao"
+            rows="3"
+            maxlength="200"
+          ></textarea>
+          <mat-hint align="end">
+            {{ form.controls.conta.controls.descricao.value.length }}/200
+          </mat-hint>
+        </mat-form-field>
+      </div>
+
+      <div class="campo">
+        <label class="rotulo" for="situacao">Situação</label>
+        <mat-form-field class="largura-situacao">
+          <input matInput id="situacao" class="situacao" readonly [value]="situacao" />
+        </mat-form-field>
+      </div>
+    </fieldset>
+
+    <fieldset class="secao" formGroupName="documentoCsc">
+      <legend>Documento CSC</legend>
+
+      <div class="campo">
+        <label class="rotulo" id="rotulo-pa" for="pa">
+          PA <span class="obrigatorio" aria-hidden="true">*</span>
+        </label>
+        <mat-form-field class="campo-pa">
+          <mat-select id="pa" class="pa" formControlName="paId" aria-labelledby="rotulo-pa">
+            @for (pa of pontosAtendimento(); track pa.id) {
+              <mat-option [value]="pa.id">{{ pa.nome }}</mat-option>
+            }
+          </mat-select>
+          <mat-error>Escolha o PA.</mat-error>
+        </mat-form-field>
+      </div>
+    </fieldset>
+  </form>
+
+  <section class="lancamentos" aria-labelledby="titulo-lancamentos">
+    <h3 id="titulo-lancamentos" class="titulo-lancamentos">Lançamentos do lote</h3>
+    <app-grade-lancamentos [lancamentos]="lancamentos()" [historicos]="historicos()" />
+  </section>
+</mat-dialog-content>
+
+<mat-dialog-actions class="rodape">
+  <mat-checkbox class="manter-dados" [formControl]="manterDados">Manter dados na tela</mat-checkbox>
+  <!-- O botão fica fora do <form>; o atributo "form" o liga a ele, como envio. -->
+  <button matButton="filled" type="submit" form="form-lancamento" [disabled]="salvando()">
+    Incluir
+  </button>
+  <button matButton="outlined" type="button" mat-dialog-close>Fechar</button>
+</mat-dialog-actions>
