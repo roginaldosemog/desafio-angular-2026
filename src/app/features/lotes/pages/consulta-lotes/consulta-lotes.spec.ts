@@ -60,6 +60,8 @@ describe('ConsultaLotes', () => {
       buscarContaCorrente: () => of(null),
       listarHistoricos: () => of([]),
       listarPontosAtendimento: () => of([]),
+      buscarEvento: () => of(null),
+      pesquisarEventos: () => of({ itens: [], total: 0, pagina: 1, tamanhoPagina: 5 }),
     };
     listarLancamentos = vi.fn<LancamentosApi['listar']>(() => of([]));
     pesquisar = vi.fn<LotesApi['pesquisar']>(

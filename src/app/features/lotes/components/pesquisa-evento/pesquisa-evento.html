@@ -1,0 +1,110 @@
+<h2 mat-dialog-title>Pesquisa Evento</h2>
+
+<mat-dialog-content>
+  <form class="busca" [formGroup]="form" (ngSubmit)="listar()">
+    <div class="campo">
+      <label class="rotulo" id="rotulo-campo-busca" for="campo-busca">Campo de Busca</label>
+      <mat-form-field>
+        <mat-select
+          id="campo-busca"
+          class="campo-busca"
+          formControlName="campo"
+          aria-labelledby="rotulo-campo-busca"
+        >
+          @for (campo of camposBusca; track campo.valor) {
+            <mat-option [value]="campo.valor">{{ campo.rotulo }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+    <div class="campo campo-valor">
+      <label class="rotulo" for="valor-busca">Valor</label>
+      <mat-form-field>
+        <input matInput id="valor-busca" class="valor-busca" formControlName="valor" />
+      </mat-form-field>
+    </div>
+    <button matButton="filled" type="submit" class="listar">Listar</button>
+  </form>
+
+  <!-- Região rolável e grupo de escolha única são papéis diferentes: um elemento para cada. -->
+  <div class="area-rolavel" role="region" aria-label="Eventos encontrados" tabindex="0">
+    <mat-radio-group
+      aria-label="Evento"
+      [value]="selecionadoId()"
+      (change)="selecionadoId.set($event.value)"
+    >
+      <table mat-table class="tabela" [dataSource]="eventos()">
+        <ng-container matColumnDef="selecao">
+          <th mat-header-cell *matHeaderCellDef class="coluna-selecao">
+            <span class="somente-leitor">Seleção</span>
+          </th>
+          <td mat-cell *matCellDef="let evento" class="coluna-selecao">
+            <mat-radio-button
+              [value]="evento.id"
+              [aria-label]="'Selecionar evento ' + evento.id + ' - ' + evento.descricao"
+            />
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef class="numero">ID Evento</th>
+          <td mat-cell *matCellDef="let evento" class="numero">{{ evento.id }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="codigo">
+          <th mat-header-cell *matHeaderCellDef class="numero">Cód. Evento</th>
+          <td mat-cell *matCellDef="let evento" class="numero">{{ evento.codigo }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="descricao">
+          <th mat-header-cell *matHeaderCellDef>Descrição</th>
+          <td mat-cell *matCellDef="let evento">{{ evento.descricao }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="dataInicio">
+          <th mat-header-cell *matHeaderCellDef>Dt. Início</th>
+          <td mat-cell *matCellDef="let evento" class="data">
+            {{ evento.dataInicio | date: 'dd/MM/yyyy' }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="dataFim">
+          <th mat-header-cell *matHeaderCellDef>Dt. Fim</th>
+          <td mat-cell *matCellDef="let evento" class="data">
+            {{ evento.dataFim | date: 'dd/MM/yyyy' }}
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="colunas" class="cabecalho"></tr>
+        <tr
+          mat-row
+          *matRowDef="let evento; columns: colunas"
+          class="linha"
+          [class.selecionada]="evento.id === selecionadoId()"
+        ></tr>
+        <tr *matNoDataRow>
+          <td class="sem-registros" [attr.colspan]="colunas.length">Nenhum registro encontrado.</td>
+        </tr>
+      </table>
+    </mat-radio-group>
+  </div>
+
+  <app-paginacao
+    [pagina]="pagina()"
+    [total]="total()"
+    [tamanhoPagina]="tamanhoPagina"
+    (trocarPagina)="trocarPagina($event)"
+  />
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button
+    matButton="filled"
+    type="button"
+    [disabled]="!selecionado()"
+    [mat-dialog-close]="selecionado()"
+  >
+    OK
+  </button>
+  <button matButton="outlined" type="button" mat-dialog-close>Fechar</button>
+</mat-dialog-actions>

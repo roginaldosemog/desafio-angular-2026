@@ -113,7 +113,8 @@ estrutura e proporção, não pixel perfect.
   e título (`legend`) de 13 px com peso 600. 16 px entre as seções.
 - **DS-22** Larguras: Conta Corrente com 160 px; Valor e Documento com 200 px; Situação com 280 px.
   Histórico, PA, Descrição e Compl. Histórico ocupam a largura toda.
-- **DS-23** Modal "Pesquisa Evento" com 600 px de largura:
+- **DS-23** Modal "Pesquisa Evento" com 680 px de largura, para as seis colunas caberem sem
+  rolagem horizontal:
   - linha de busca com Campo de Busca, Valor e o botão Listar;
   - tabela no mesmo estilo da consulta;
   - rodapé com OK (primário) e FECHAR (contorno).

@@ -9,12 +9,13 @@ import { MATERIAL_ANIMATIONS } from '@angular/material/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldHarness } from '@angular/material/form-field/testing';
 import { MatInputHarness } from '@angular/material/input/testing';
+import { MatRadioButtonHarness } from '@angular/material/radio/testing';
 import { MatSelectHarness } from '@angular/material/select/testing';
 import { MatTableHarness } from '@angular/material/table/testing';
 import { Observable, of, Subject, throwError } from 'rxjs';
 import { CadastrosApi } from '../../data-access/cadastros-api';
 import { LancamentosApi } from '../../data-access/lancamentos-api';
-import { ContaCorrente } from '../../models/cadastros';
+import { ContaCorrente, Evento } from '../../models/cadastros';
 import { DadosLancamento, Lancamento } from '../../models/lancamento';
 import { Lote } from '../../models/lote';
 import { criarLote } from '../../testing/fabricas';
@@ -22,6 +23,13 @@ import { DadosModalLancamento, IncluirLancamento } from './incluir-lancamento';
 
 const CONTA: ContaCorrente = { numero: '44444', titular: 'Ana Paula Costa' };
 const LOTE: Lote = criarLote({ id: 5, situacao: 'ABERTO' });
+const EVENTO: Evento = {
+  id: 102,
+  codigo: 300,
+  descricao: 'Centralizacao Titulo CSC Credito',
+  dataInicio: '2019-12-31',
+  dataFim: null,
+};
 
 /** O que o "servidor" devolve: os dados enviados mais o que ele define. */
 function gravado(loteId: number | null, dados: DadosLancamento, id: number): Lancamento {
@@ -64,6 +72,8 @@ describe('IncluirLancamento', () => {
         opcoes.buscarConta ?? ((numero) => of(numero === CONTA.numero ? CONTA : null)),
       listarHistoricos: () => of([{ id: 1, descricao: 'Lançamento Manual' }]),
       listarPontosAtendimento: () => of([{ id: 1, nome: 'Cooperativa' }]),
+      buscarEvento: (id) => of(id === EVENTO.id ? EVENTO : null),
+      pesquisarEventos: () => of({ itens: [EVENTO], total: 1, pagina: 1, tamanhoPagina: 5 }),
     };
     TestBed.configureTestingModule({
       imports: [IncluirLancamento],
@@ -121,6 +131,7 @@ describe('IncluirLancamento', () => {
     await escolher('historico', 'Lançamento Manual');
     await (await campo('documento')).setValue('DOC-9');
     await escolher('pa', 'Cooperativa');
+    await (await campo('complemento-historico')).setValue('Ajuste mensal');
   }
 
   const DADOS_ESPERADOS: DadosLancamento = {
@@ -130,7 +141,12 @@ describe('IncluirLancamento', () => {
     estorno: false,
     documento: 'DOC-9',
     descricao: '',
-    documentoCsc: { paId: 1, eventoId: null, complementoHistorico: '', idDocumentoCsc: '' },
+    documentoCsc: {
+      paId: 1,
+      eventoId: null,
+      complementoHistorico: 'Ajuste mensal',
+      idDocumentoCsc: '',
+    },
     anexos: [],
   };
 
@@ -191,7 +207,7 @@ describe('IncluirLancamento', () => {
     await criar();
 
     const obrigatorios = [...fixture.nativeElement.querySelectorAll('label .obrigatorio')].length;
-    expect(obrigatorios).toBe(5);
+    expect(obrigatorios).toBe(6);
     expect(await (await campo('documento')).isRequired()).toBe(true);
   });
 
@@ -205,6 +221,7 @@ describe('IncluirLancamento', () => {
     expect(await errosDo('historico')).toEqual(['Escolha o histórico.']);
     expect(await errosDo('documento')).toEqual(['Informe o documento.']);
     expect(await errosDo('pa')).toEqual(['Escolha o PA.']);
+    expect(await errosDo('complemento-historico')).toEqual(['Informe o complemento do histórico.']);
     expect(incluir).not.toHaveBeenCalled();
     expect(document.activeElement?.classList).toContain('conta-corrente');
   });
@@ -254,6 +271,7 @@ describe('IncluirLancamento', () => {
     await escolher('historico', 'Lançamento Manual');
     await (await campo('documento')).setValue('DOC-9');
     await escolher('pa', 'Cooperativa');
+    await (await campo('complemento-historico')).setValue('Ajuste mensal');
 
     await (await botao('Incluir')).click();
     expect(incluir).not.toHaveBeenCalled();
@@ -398,6 +416,72 @@ describe('IncluirLancamento', () => {
       const lupa = await loader.getHarness(MatButtonHarness.with({ selector: '.lupa' }));
       expect(await lupa.isDisabled()).toBe(true);
       expect(texto('[mat-dialog-title]')).toBe('Visualizar Lote 5');
+    });
+  });
+
+  describe('Documento CSC', () => {
+    async function informarEvento(id: string) {
+      const evento = await campo('evento');
+      await evento.setValue(id);
+      await evento.blur();
+    }
+
+    it('IL-08: ID Evento existente mostra a descrição ao lado', async () => {
+      await criar();
+
+      await informarEvento('102');
+
+      expect(texto('.descricao-evento')).toBe('Centralizacao Titulo CSC Credito');
+      expect(await errosDo('evento')).toEqual([]);
+    });
+
+    it('IL-08: ID Evento inexistente mostra "Evento não encontrado."', async () => {
+      await criar();
+
+      await informarEvento('999');
+
+      expect(await errosDo('evento')).toEqual(['Evento não encontrado.']);
+    });
+
+    it('IL-08: a lupa abre a Pesquisa Evento e preenche o evento escolhido', async () => {
+      await criar();
+
+      await (await loader.getHarness(MatButtonHarness.with({ selector: '.lupa-evento' }))).click();
+      const raiz = TestbedHarnessEnvironment.documentRootLoader(fixture);
+      const [opcao] = await raiz.getAllHarnesses(MatRadioButtonHarness);
+      await opcao.check();
+      await (await raiz.getHarness(MatButtonHarness.with({ text: 'OK' }))).click();
+      await fixture.whenStable();
+
+      expect(await (await campo('evento')).getValue()).toBe('102');
+      expect(texto('.descricao-evento')).toBe('Centralizacao Titulo CSC Credito');
+    });
+
+    it('IL-08: o evento escolhido vai no lançamento', async () => {
+      await criar();
+      await preencherValido();
+      await informarEvento('102');
+
+      await (await botao('Incluir')).click();
+
+      expect(incluir).toHaveBeenCalledWith(null, {
+        ...DADOS_ESPERADOS,
+        documentoCsc: { ...DADOS_ESPERADOS.documentoCsc, eventoId: 102 },
+      });
+    });
+
+    it('IL-09: Situação do documento é somente leitura, com "Aguardando Processamento CCO"', async () => {
+      await criar();
+
+      const situacao = await campo('situacao-csc');
+      expect(await situacao.getValue()).toBe('Aguardando Processamento CCO');
+      expect(await situacao.isReadonly()).toBe(true);
+    });
+
+    it('IL-09: ID Doc CSC é opcional', async () => {
+      await criar();
+
+      expect(await (await campo('id-documento-csc')).isRequired()).toBe(false);
     });
   });
 });

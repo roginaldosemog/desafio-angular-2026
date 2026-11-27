@@ -25,6 +25,9 @@ export interface PontoAtendimento {
   readonly nome: string;
 }
 
+/** Por qual campo a Pesquisa Evento procura (IL-08). */
+export type CampoBuscaEvento = 'id' | 'codigo' | 'descricao';
+
 export interface Evento {
   readonly id: number;
   readonly codigo: number;

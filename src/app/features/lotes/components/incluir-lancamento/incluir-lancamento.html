@@ -161,6 +161,85 @@
           <mat-error>Escolha o PA.</mat-error>
         </mat-form-field>
       </div>
+
+      <div class="campo">
+        <label class="rotulo" for="evento">ID Evento</label>
+        <div class="linha-conta">
+          <mat-form-field class="campo-evento largura-conta">
+            <input
+              #campoEvento
+              matInput
+              id="evento"
+              class="evento"
+              formControlName="eventoId"
+              inputmode="numeric"
+              aria-describedby="descricao-evento"
+              (keydown.enter)="buscarEvento($event)"
+            />
+            @if (form.controls.documentoCsc.controls.eventoId.hasError('pattern')) {
+              <mat-error>Use só números.</mat-error>
+            } @else {
+              <mat-error>Evento não encontrado.</mat-error>
+            }
+          </mat-form-field>
+          <button
+            matIconButton
+            type="button"
+            class="lupa-evento"
+            aria-label="Pesquisar evento"
+            [disabled]="form.controls.documentoCsc.disabled"
+            (click)="abrirPesquisaEvento()"
+          >
+            <mat-icon aria-hidden="true">search</mat-icon>
+          </button>
+          <span id="descricao-evento" class="titular descricao-evento" aria-live="polite">
+            {{ descricaoEvento() }}
+          </span>
+        </div>
+      </div>
+
+      <div class="campo">
+        <label class="rotulo" for="complemento-historico">
+          Compl. Histórico <span class="obrigatorio" aria-hidden="true">*</span>
+        </label>
+        <mat-form-field class="campo-complemento-historico">
+          <textarea
+            matInput
+            id="complemento-historico"
+            class="complemento-historico"
+            formControlName="complementoHistorico"
+            rows="3"
+            maxlength="200"
+          ></textarea>
+          <mat-error>Informe o complemento do histórico.</mat-error>
+        </mat-form-field>
+      </div>
+
+      <div class="campo">
+        <label class="rotulo" for="situacao-csc">Situação</label>
+        <mat-form-field class="largura-situacao">
+          <input
+            matInput
+            id="situacao-csc"
+            class="situacao-csc"
+            readonly
+            [value]="situacaoDocumentoCsc"
+          />
+        </mat-form-field>
+      </div>
+
+      <div class="campo">
+        <label class="rotulo" for="id-documento-csc">ID Doc CSC</label>
+        <mat-form-field class="largura-media">
+          <input
+            matInput
+            id="id-documento-csc"
+            class="id-documento-csc"
+            formControlName="idDocumentoCsc"
+            maxlength="20"
+          />
+        </mat-form-field>
+      </div>
     </fieldset>
   </form>
 

@@ -1,0 +1,44 @@
+// Regra DS-23 de docs/specs/design.md. Tabela no visual comum (src/styles/_tabela.scss).
+// Sem estilo no :host: o componente do diálogo fica com `display: contents` (Material).
+@use 'tabela';
+
+@include tabela.estilos;
+
+.busca {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--app-espaco-2);
+  margin-bottom: var(--app-espaco-3);
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-espaco-1);
+}
+
+.rotulo {
+  color: var(--app-header);
+  font-weight: 600;
+}
+
+mat-form-field {
+  width: 100%;
+}
+
+// O botão fica alinhado aos campos de 36 px, não ao rótulo.
+.listar {
+  margin-bottom: 2px;
+}
+
+.coluna-selecao {
+  width: 48px;
+  padding-right: 0;
+}
+
+@media (max-width: 599px) {
+  .busca {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -33,10 +33,17 @@ import { CampoMonetario } from '../../../../shared/directives/campo-monetario';
 import { valorPositivo } from '../../../../shared/forms/validadores';
 import { CadastrosApi } from '../../data-access/cadastros-api';
 import { LancamentosApi } from '../../data-access/lancamentos-api';
-import { contaCorrenteExistente } from '../../forms/conta-corrente-existente';
-import { DadosLancamento, Lancamento, ROTULO_SITUACAO_LANCAMENTO } from '../../models/lancamento';
+import { existeNoCadastro } from '../../forms/existe-no-cadastro';
+import { Evento } from '../../models/cadastros';
+import {
+  DadosLancamento,
+  Lancamento,
+  ROTULO_SITUACAO_DOCUMENTO_CSC,
+  ROTULO_SITUACAO_LANCAMENTO,
+} from '../../models/lancamento';
 import { Lote } from '../../models/lote';
 import { GradeLancamentos } from '../grade-lancamentos/grade-lancamentos';
+import { PesquisaEvento } from '../pesquisa-evento/pesquisa-evento';
 
 /**
  * Campos na ordem da tela: caminho do controle no formulário → id do elemento. Usado para focar o
@@ -49,6 +56,9 @@ const ORDEM_DOS_CAMPOS: readonly (readonly [string, string])[] = [
   ['conta.documento', 'documento'],
   ['conta.descricao', 'descricao'],
   ['documentoCsc.paId', 'pa'],
+  ['documentoCsc.eventoId', 'evento'],
+  ['documentoCsc.complementoHistorico', 'complemento-historico'],
+  ['documentoCsc.idDocumentoCsc', 'id-documento-csc'],
 ];
 
 /** O que a página informa ao abrir o modal. */
@@ -104,6 +114,8 @@ export class IncluirLancamento {
     initialValue: [],
   });
   protected readonly situacao = ROTULO_SITUACAO_LANCAMENTO.PENDENTE;
+  protected readonly situacaoDocumentoCsc =
+    ROTULO_SITUACAO_DOCUMENTO_CSC.AGUARDANDO_PROCESSAMENTO_CCO;
 
   protected readonly somenteLeitura = this.dados.somenteLeitura ?? false;
   protected readonly titulo =
@@ -118,6 +130,8 @@ export class IncluirLancamento {
   protected readonly modo = signal<Modo>({ tipo: 'incluir' });
   /** Titular da conta encontrada pela lupa (IL-03). */
   protected readonly titular = signal('');
+  /** Descrição do evento encontrado (IL-08). */
+  protected readonly descricaoEvento = signal('');
   protected readonly salvando = signal(false);
 
   /** IL-14: as ações da grade trabalham sobre exatamente um lançamento selecionado. */
@@ -144,6 +158,7 @@ export class IncluirLancamento {
   );
 
   private readonly campoConta = viewChild.required<ElementRef<HTMLInputElement>>('campoConta');
+  private readonly campoEvento = viewChild.required<ElementRef<HTMLInputElement>>('campoEvento');
   private readonly formulario = viewChild.required(FormGroupDirective);
 
   private readonly fb = inject(NonNullableFormBuilder);
@@ -155,9 +170,10 @@ export class IncluirLancamento {
       numero: this.fb.control('', {
         validators: [Validators.required, Validators.pattern(/^\d+$/)],
         asyncValidators: [
-          contaCorrenteExistente(
+          existeNoCadastro(
             (numero) => this.cadastros.buscarContaCorrente(numero),
             (conta) => this.titular.set(conta?.titular ?? ''),
+            'contaNaoEncontrada',
           ),
         ],
         updateOn: 'blur',
@@ -170,6 +186,20 @@ export class IncluirLancamento {
     }),
     documentoCsc: this.fb.group({
       paId: this.fb.control<number | null>(null, Validators.required),
+      // Opcional; se informado, precisa existir. Validado como a conta: ao sair do campo.
+      eventoId: this.fb.control('', {
+        validators: [Validators.pattern(/^\d+$/)],
+        asyncValidators: [
+          existeNoCadastro<Evento>(
+            (id) => this.cadastros.buscarEvento(Number(id)),
+            (evento) => this.descricaoEvento.set(evento?.descricao ?? ''),
+            'eventoNaoEncontrado',
+          ),
+        ],
+        updateOn: 'blur',
+      }),
+      complementoHistorico: ['', [Validators.required, Validators.maxLength(200)]],
+      idDocumentoCsc: ['', Validators.maxLength(20)],
     }),
   });
 
@@ -196,6 +226,37 @@ export class IncluirLancamento {
     // Com updateOn: 'blur', o texto só chega ao controle ao sair do campo: aqui, confirma já.
     numero.setValue(this.campoConta().nativeElement.value);
     numero.markAsTouched();
+  }
+
+  /** IL-08: Enter no campo busca o evento digitado, sem incluir o lançamento. */
+  protected buscarEvento(evento: Event): void {
+    evento.preventDefault();
+    const controle = this.form.controls.documentoCsc.controls.eventoId;
+    controle.setValue(this.campoEvento().nativeElement.value);
+    controle.markAsTouched();
+  }
+
+  /** IL-08: a lupa abre a Pesquisa Evento; o evento escolhido preenche o campo. */
+  protected abrirPesquisaEvento(): void {
+    this.dialogo
+      .open<PesquisaEvento, void, Evento>(PesquisaEvento, {
+        // 680 px: as seis colunas da tabela cabem sem rolagem horizontal (DS-23).
+        width: 'min(680px, 100vw)',
+        maxWidth: '100vw',
+        autoFocus: '#valor-busca',
+        // A pesquisa usa a CadastrosApi da rota: o injetor deste modal a enxerga.
+        injector: this.injector,
+      })
+      .afterClosed()
+      .pipe(
+        filter((evento): evento is Evento => evento !== undefined),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((evento) => {
+        const controle = this.form.controls.documentoCsc.controls.eventoId;
+        controle.setValue(String(evento.id));
+        controle.markAsTouched();
+      });
   }
 
   /** IL-12, IL-13 e IL-15: inclui ou salva a alteração, só com o formulário válido. */
@@ -288,6 +349,7 @@ export class IncluirLancamento {
     // resetForm (e não só reset): também zera o "enviado", senão os erros reapareceriam.
     this.formulario().resetForm();
     this.titular.set('');
+    this.descricaoEvento.set('');
     if (!this.somenteLeitura) {
       this.form.enable();
     }
@@ -351,9 +413,23 @@ export class IncluirLancamento {
         documento: lancamento.documento,
         descricao: lancamento.descricao,
       },
-      documentoCsc: { paId: lancamento.documentoCsc.paId },
+      documentoCsc: {
+        paId: lancamento.documentoCsc.paId,
+        eventoId: lancamento.documentoCsc.eventoId?.toString() ?? '',
+        complementoHistorico: lancamento.documentoCsc.complementoHistorico,
+        idDocumentoCsc: lancamento.documentoCsc.idDocumentoCsc,
+      },
     });
     this.titular.set(lancamento.titular);
+    // Com o formulário desabilitado (Visualizar), o validador não roda: busca a descrição aqui.
+    this.descricaoEvento.set('');
+    const eventoId = lancamento.documentoCsc.eventoId;
+    if (eventoId !== null) {
+      this.cadastros
+        .buscarEvento(eventoId)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((evento) => this.descricaoEvento.set(evento?.descricao ?? ''));
+    }
   }
 
   /**
@@ -389,13 +465,13 @@ export class IncluirLancamento {
       estorno: conta.estorno,
       documento: conta.documento.trim(),
       descricao: conta.descricao.trim(),
-      // Evento, complemento e anexos: Documento CSC completo, nos próximos passos (IL-08 a IL-10).
       documentoCsc: {
         paId: documentoCsc.paId,
-        eventoId: null,
-        complementoHistorico: '',
-        idDocumentoCsc: '',
+        eventoId: documentoCsc.eventoId.trim() === '' ? null : Number(documentoCsc.eventoId),
+        complementoHistorico: documentoCsc.complementoHistorico.trim(),
+        idDocumentoCsc: documentoCsc.idDocumentoCsc.trim(),
       },
+      // Anexos: próximo passo (IL-10).
       anexos: [],
     };
   }

@@ -27,7 +27,8 @@ Angular 22.3 · Angular Material 22.3 · TypeScript 6.0 · RxJS 7.8 · Vitest 5.
   reaproveitado em ID, Valor e Data.
 - **Datas em dd/mm/aaaa:** adaptador próprio, porque o nativo do Material lê no formato americano.
 - **Modal de lançamento** com Reactive Forms tipado: validadores nativos, um customizado
-  (`valorPositivo`) e um assíncrono (`contaCorrenteExistente`, validado ao sair do campo). Aberto
+  (`valorPositivo`) e um assíncrono genérico (`existeNoCadastro`, para conta e evento, validado ao sair do
+  campo). Aberto
   pelo `MatDialog` com o injetor da página, para usar as APIs da rota. O mesmo modal inclui, altera,
   duplica e exclui lançamentos, e abre somente leitura no Visualizar (modo como união discriminada).
 - **Campo monetário e máscara de data próprios**, sem biblioteca de máscara: o monetário é um
