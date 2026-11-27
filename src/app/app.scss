@@ -1,0 +1,98 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.estrutura-aplicacao {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.navegacao-lateral {
+  border-right: 1px solid var(--app-border);
+  background: var(--app-surface);
+}
+
+// Mesma altura do cabeçalho (box-sizing: border-box), com a borda inferior dentro dela:
+// a linha verde termina exatamente na mesma linha da borda do cabeçalho.
+.modulo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: var(--app-cabecalho-altura);
+  border-bottom: 2px solid transparent;
+  color: var(--app-muted);
+  font-size: 10px;
+  text-decoration: none;
+}
+
+.modulo:hover,
+.modulo:focus-visible {
+  color: var(--app-primary);
+}
+
+.modulo.ativo {
+  border-bottom-color: var(--app-primary);
+  background: var(--app-highlight);
+  color: var(--app-primary);
+}
+
+.area-aplicacao {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cabecalho-aplicacao {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  height: var(--app-cabecalho-altura);
+  padding: 0 20px;
+  border-bottom: 1px solid var(--app-border);
+  background: var(--app-surface);
+}
+
+main {
+  flex: 1;
+}
+
+h1 {
+  margin: 0;
+  color: var(--app-title);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--app-link);
+  font-size: 11px;
+}
+
+.breadcrumb a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.breadcrumb a:hover,
+.breadcrumb a:focus-visible {
+  text-decoration: underline;
+}
+
+@media (max-width: 600px) {
+  .estrutura-aplicacao {
+    grid-template-columns: 52px minmax(0, 1fr);
+  }
+
+  .cabecalho-aplicacao {
+    padding-inline: 12px;
+  }
+}

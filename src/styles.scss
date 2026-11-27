@@ -1,1 +1,82 @@
-/* You can add global styles to this file, and also import other style files */
+@use '@angular/material' as mat;
+@use './styles/theme-colors' as theme;
+@use '@fontsource/asap/latin-400.css';
+@use '@fontsource/asap/latin-500.css';
+@use '@fontsource/asap/latin-600.css';
+@use '@fontsource/asap/latin-700.css';
+@use '@material-symbols/font-400/outlined.css';
+
+// Design tokens: toda cor, fonte e raio da aplicação vem daqui.
+// As combinações de texto atendem ao contraste mínimo WCAG AA (4,5:1).
+html {
+  --app-font: Asap, Arial, sans-serif;
+  --app-primary: #007f78;
+  --app-title: #00665f;
+  --app-header: #002e37;
+  --app-link: #3d6b66;
+  --app-surface: #ffffff;
+  --app-background: #e8e8eb;
+  --app-highlight: #effaf8;
+  --app-border: #d6d6d6;
+  --app-text: #344f54;
+  --app-muted: #6b6b6b;
+  --app-error: #ba1a1a;
+  --app-radius: 4px;
+  // Altura única do cabeçalho e do item de módulo lateral: mantém as bordas inferiores alinhadas.
+  --app-cabecalho-altura: 64px;
+
+  @include mat.theme(
+    (
+      color: (
+        primary: theme.$primary-palette,
+        tertiary: theme.$tertiary-palette,
+      ),
+      typography: (
+        plain-family: (
+          Asap,
+          Arial,
+          sans-serif,
+        ),
+      ),
+      density: -3,
+    )
+  );
+
+  @include mat.theme-overrides(
+    (
+      primary: var(--app-primary),
+      on-primary: var(--app-surface),
+      surface: var(--app-surface),
+      on-surface: var(--app-text),
+      outline: var(--app-border),
+      error: var(--app-error),
+    )
+  );
+
+  color-scheme: light;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--app-background);
+  color: var(--app-text);
+  font: 400 12px / 1.4 var(--app-font);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+// Conteúdo disponível apenas para leitores de tela.
+.somente-leitor {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

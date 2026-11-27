@@ -1,23 +1,52 @@
 import { TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
 import { App } from './app';
+import { appConfig } from './app.config';
 
 describe('App', () => {
+  let elemento: HTMLElement;
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
+      providers: appConfig.providers,
     }).compileComponents();
-  });
 
-  it('should create the app', () => {
     const fixture = TestBed.createComponent(App);
-    const app = fixture.componentInstance;
-    expect(app).toBeTruthy();
-  });
-
-  it('should render title', async () => {
-    const fixture = TestBed.createComponent(App);
+    await TestBed.inject(Router).navigateByUrl('/contabil');
     await fixture.whenStable();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, desafio-angular-2026');
+    elemento = fixture.nativeElement as HTMLElement;
+  });
+
+  it('exibe o título do módulo', () => {
+    expect(elemento.querySelector('h1')?.textContent).toBe('Outros Créditos/Débitos');
+  });
+
+  it('exibe o breadcrumb Início > Outros Créditos/Débitos', () => {
+    const breadcrumb = elemento.querySelector('nav[aria-label="Navegação estrutural"]');
+    const inicio = breadcrumb?.querySelector('a');
+
+    expect(inicio?.textContent).toBe('Início');
+    expect(inicio?.getAttribute('href')).toBe('/');
+    expect(breadcrumb?.querySelector('[aria-current="page"]')?.textContent).toBe(
+      'Outros Créditos/Débitos',
+    );
+  });
+
+  it('marca o módulo Contábil como página atual quando a rota /contabil está ativa', () => {
+    const modulo = elemento.querySelector<HTMLAnchorElement>('nav[aria-label="Módulos"] a');
+
+    expect(modulo?.getAttribute('href')).toBe('/contabil');
+    expect(modulo?.textContent).toContain('Contábil');
+    expect(modulo?.getAttribute('aria-current')).toBe('page');
+    expect(modulo?.classList).toContain('ativo');
+  });
+
+  it('exibe o ícone do módulo pelo Material Symbols, oculto para leitores de tela', () => {
+    const icone = elemento.querySelector('nav[aria-label="Módulos"] mat-icon');
+
+    expect(icone?.textContent?.trim()).toBe('table_view');
+    expect(icone?.classList).toContain('material-symbols-outlined');
+    expect(icone?.getAttribute('aria-hidden')).toBe('true');
   });
 });
