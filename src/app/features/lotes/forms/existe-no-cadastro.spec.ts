@@ -1,7 +1,7 @@
 import { FormControl } from '@angular/forms';
-import { firstValueFrom, Observable, of } from 'rxjs';
+import { firstValueFrom, Observable, of, throwError } from 'rxjs';
 import { ContaCorrente } from '../models/cadastros';
-import { existeNoCadastro } from './existe-no-cadastro';
+import { ERRO_VERIFICACAO, existeNoCadastro } from './existe-no-cadastro';
 
 const CONTA: ContaCorrente = { numero: '44444', titular: 'Ana Paula Costa' };
 
@@ -35,6 +35,19 @@ describe('existeNoCadastro', () => {
 
   it('IL-03, IL-08: registro inexistente gera o erro informado', async () => {
     expect(await validar('99999')).toEqual({ contaNaoEncontrada: true });
+    expect(encontrados).toEqual([null]);
+  });
+
+  it('IL-17: falha na consulta vira erro de verificação, em vez de deixar o campo pendente', async () => {
+    const validador = existeNoCadastro<ContaCorrente>(
+      () => throwError(() => new Error('Servidor indisponível')),
+      (conta) => encontrados.push(conta),
+      'contaNaoEncontrada',
+    );
+
+    const erros = await firstValueFrom(validador(new FormControl('44444')) as Observable<unknown>);
+
+    expect(erros).toEqual({ [ERRO_VERIFICACAO]: true });
     expect(encontrados).toEqual([null]);
   });
 

@@ -55,6 +55,7 @@ describe('IncluirLancamento', () => {
   async function criar(
     opcoes: {
       buscarConta?: (numero: string) => Observable<ContaCorrente | null>;
+      buscarEvento?: CadastrosApi['buscarEvento'];
       incluir?: LancamentosApi['incluir'];
       dados?: DadosModalLancamento;
       doLote?: readonly Lancamento[];
@@ -73,7 +74,7 @@ describe('IncluirLancamento', () => {
         opcoes.buscarConta ?? ((numero) => of(numero === CONTA.numero ? CONTA : null)),
       listarHistoricos: () => of([{ id: 1, descricao: 'Lançamento Manual' }]),
       listarPontosAtendimento: () => of([{ id: 1, nome: 'Cooperativa' }]),
-      buscarEvento: (id) => of(id === EVENTO.id ? EVENTO : null),
+      buscarEvento: opcoes.buscarEvento ?? ((id) => of(id === EVENTO.id ? EVENTO : null)),
       pesquisarEventos: () => of({ itens: [EVENTO], total: 1, pagina: 1, tamanhoPagina: 5 }),
     };
     TestBed.configureTestingModule({
@@ -287,6 +288,65 @@ describe('IncluirLancamento', () => {
     resposta.complete();
     await fixture.whenStable();
     expect(incluir).toHaveBeenCalledTimes(1);
+  });
+
+  describe('IL-17: verificação no servidor', () => {
+    const indisponivel = () => throwError(() => new Error('Servidor indisponível'));
+    const dicasDo = async (classe: string) =>
+      (
+        await loader.getHarness(MatFormFieldHarness.with({ selector: `.campo-${classe}` }))
+      ).getTextHints();
+
+    it('IL-17: mostra "Verificando conta…" enquanto o servidor responde', async () => {
+      const resposta = new Subject<ContaCorrente | null>();
+      await criar({ buscarConta: () => resposta });
+
+      await informarConta('44444');
+      expect(await dicasDo('conta-corrente')).toEqual(['Verificando conta…']);
+
+      resposta.next(CONTA);
+      resposta.complete();
+      expect(await dicasDo('conta-corrente')).toEqual([]);
+    });
+
+    it('IL-17: se a verificação da conta falhar, avisa e Incluir não fica travado', async () => {
+      await criar({ buscarConta: indisponivel });
+      await preencherValido();
+
+      await (await botao('Incluir')).click();
+
+      expect(await errosDo('conta-corrente')).toEqual([
+        'Não foi possível verificar a conta. Tente de novo.',
+      ]);
+      expect(incluir).not.toHaveBeenCalled();
+      expect(document.activeElement?.classList).toContain('conta-corrente');
+    });
+
+    it('IL-17: depois de uma falha, a lupa verifica a conta de novo', async () => {
+      let tentativas = 0;
+      await criar({ buscarConta: () => (++tentativas === 1 ? indisponivel() : of(CONTA)) });
+      await informarConta('44444');
+
+      await (await loader.getHarness(MatButtonHarness.with({ selector: '.lupa' }))).click();
+
+      expect(texto('.titular')).toBe('Ana Paula Costa');
+      expect(await errosDo('conta-corrente')).toEqual([]);
+    });
+
+    it('IL-17: o evento também avisa a verificação e a falha', async () => {
+      const resposta = new Subject<Evento | null>();
+      await criar({ buscarEvento: () => resposta });
+      const evento = await campo('evento');
+      await evento.setValue('102');
+      await evento.blur();
+      expect(await dicasDo('evento')).toEqual(['Verificando evento…']);
+
+      resposta.error(new Error('Servidor indisponível'));
+
+      expect(await errosDo('evento')).toEqual([
+        'Não foi possível verificar o evento. Tente de novo.',
+      ]);
+    });
   });
 
   it('se a inclusão falhar, mantém o formulário preenchido para tentar de novo', async () => {

@@ -37,7 +37,7 @@ import { paraDataHoraIso } from '../../../../shared/datas/datas-pt-br';
 import { valorPositivo } from '../../../../shared/forms/validadores';
 import { CadastrosApi } from '../../data-access/cadastros-api';
 import { LancamentosApi } from '../../data-access/lancamentos-api';
-import { existeNoCadastro } from '../../forms/existe-no-cadastro';
+import { ERRO_VERIFICACAO, existeNoCadastro } from '../../forms/existe-no-cadastro';
 import { Evento } from '../../models/cadastros';
 import {
   Anexo,
@@ -125,6 +125,7 @@ export class IncluirLancamento {
   protected readonly situacaoDocumentoCsc =
     ROTULO_SITUACAO_DOCUMENTO_CSC.AGUARDANDO_PROCESSAMENTO_CCO;
 
+  protected readonly erroVerificacao = ERRO_VERIFICACAO;
   protected readonly somenteLeitura = this.dados.somenteLeitura ?? false;
   protected readonly titulo =
     this.somenteLeitura && this.dados.lote

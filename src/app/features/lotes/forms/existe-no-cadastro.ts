@@ -1,5 +1,8 @@
 import { AbstractControl, AsyncValidatorFn, ValidationErrors } from '@angular/forms';
-import { map, Observable, of, tap } from 'rxjs';
+import { catchError, map, Observable, of, tap } from 'rxjs';
+
+/** Erro de quando o servidor não respondeu: não dá para dizer se o registro existe (IL-17). */
+export const ERRO_VERIFICACAO = 'verificacaoIndisponivel';
 
 /**
  * Validador assíncrono genérico (IL-03, IL-08): o código digitado precisa existir no cadastro.
@@ -22,7 +25,13 @@ export function existeNoCadastro<T>(
     }
     return buscar(codigo).pipe(
       tap(aoBuscar),
-      map((registro) => (registro ? null : { [erro]: true })),
+      map((registro): ValidationErrors | null => (registro ? null : { [erro]: true })),
+      // IL-17: sem isto, uma falha do servidor deixaria o campo PENDING para sempre, e o
+      // formulário nunca ficaria válido nem inválido. Vira um erro do campo, com nova tentativa.
+      catchError(() => {
+        aoBuscar(null);
+        return of({ [ERRO_VERIFICACAO]: true });
+      }),
     );
   };
 }

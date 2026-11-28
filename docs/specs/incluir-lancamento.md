@@ -48,6 +48,10 @@ de um lote. Layout e comportamento visual em [design.md](design.md).
 - **IL-13** Incluir com o formulário válido adiciona o lançamento ao lote e ele aparece na grade
   de lançamentos. O formulário volta ao estado inicial, a menos que "Manter dados na tela" esteja
   marcado.
+- **IL-17** Enquanto a conta corrente ou o ID do evento são verificados no servidor, o campo mostra
+  "Verificando conta…" ou "Verificando evento…". Se a verificação falhar (servidor indisponível),
+  o campo mostra "Não foi possível verificar a conta. Tente de novo." (ou "o evento"), Incluir não
+  fica travado esperando, e a lupa ou o Enter verificam de novo.
 
 ### Grade de lançamentos do lote
 

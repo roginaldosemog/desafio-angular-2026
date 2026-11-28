@@ -40,12 +40,17 @@
               (keydown.enter)="buscarConta($event)"
             />
             @let numero = form.controls.conta.controls.numero;
+            @if (numero.pending) {
+              <mat-hint>Verificando conta…</mat-hint>
+            }
             @if (numero.hasError('required')) {
               <mat-error>Informe a conta corrente.</mat-error>
             } @else if (numero.hasError('pattern')) {
               <mat-error>Use só números.</mat-error>
             } @else if (numero.hasError('contaNaoEncontrada')) {
               <mat-error>Conta corrente não encontrada.</mat-error>
+            } @else if (numero.hasError(erroVerificacao)) {
+              <mat-error>Não foi possível verificar a conta. Tente de novo.</mat-error>
             }
           </mat-form-field>
           <button
@@ -176,8 +181,14 @@
               aria-describedby="descricao-evento"
               (keydown.enter)="buscarEvento($event)"
             />
-            @if (form.controls.documentoCsc.controls.eventoId.hasError('pattern')) {
+            @let eventoId = form.controls.documentoCsc.controls.eventoId;
+            @if (eventoId.pending) {
+              <mat-hint>Verificando evento…</mat-hint>
+            }
+            @if (eventoId.hasError('pattern')) {
               <mat-error>Use só números.</mat-error>
+            } @else if (eventoId.hasError(erroVerificacao)) {
+              <mat-error>Não foi possível verificar o evento. Tente de novo.</mat-error>
             } @else {
               <mat-error>Evento não encontrado.</mat-error>
             }
