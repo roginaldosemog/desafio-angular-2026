@@ -290,6 +290,28 @@ describe('IncluirLancamento', () => {
     expect(incluir).toHaveBeenCalledTimes(1);
   });
 
+  it('IL-18: Documento e Compl. Histórico só com espaços contam como vazios', async () => {
+    await criar();
+    await preencherValido();
+    await (await campo('documento')).setValue('   ');
+    await (await campo('complemento-historico')).setValue('   ');
+
+    await (await botao('Incluir')).click();
+
+    expect(await errosDo('documento')).toEqual(['Informe o documento.']);
+    expect(await errosDo('complemento-historico')).toEqual(['Informe o complemento do histórico.']);
+    expect(incluir).not.toHaveBeenCalled();
+    expect(document.activeElement?.classList).toContain('documento');
+  });
+
+  it('IL-18: Conta Corrente só com espaços pede a conta, e não "só números"', async () => {
+    await criar();
+
+    await informarConta('   ');
+
+    expect(await errosDo('conta-corrente')).toEqual(['Informe a conta corrente.']);
+  });
+
   describe('IL-17: verificação no servidor', () => {
     const indisponivel = () => throwError(() => new Error('Servidor indisponível'));
     const dicasDo = async (classe: string) =>

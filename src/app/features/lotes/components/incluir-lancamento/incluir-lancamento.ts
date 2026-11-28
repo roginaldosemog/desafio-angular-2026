@@ -34,7 +34,7 @@ import {
 } from '../../../../shared/components/dialogo-mensagem/dialogo-mensagem';
 import { CampoMonetario } from '../../../../shared/directives/campo-monetario';
 import { paraDataHoraIso } from '../../../../shared/datas/datas-pt-br';
-import { valorPositivo } from '../../../../shared/forms/validadores';
+import { naoEmBranco, valorPositivo } from '../../../../shared/forms/validadores';
 import { CadastrosApi } from '../../data-access/cadastros-api';
 import { LancamentosApi } from '../../data-access/lancamentos-api';
 import { ERRO_VERIFICACAO, existeNoCadastro } from '../../forms/existe-no-cadastro';
@@ -177,7 +177,7 @@ export class IncluirLancamento {
     conta: this.fb.group({
       // Validada ao sair do campo (e pela lupa), e não a cada tecla: a busca vai ao servidor.
       numero: this.fb.control('', {
-        validators: [Validators.required, Validators.pattern(/^\d+$/)],
+        validators: [Validators.required, naoEmBranco, Validators.pattern(/^\d+$/)],
         asyncValidators: [
           existeNoCadastro(
             (numero) => this.cadastros.buscarContaCorrente(numero),
@@ -190,7 +190,7 @@ export class IncluirLancamento {
       valorCentavos: this.fb.control<number | null>(null, [Validators.required, valorPositivo]),
       historicoId: this.fb.control<number | null>(null, Validators.required),
       estorno: [false],
-      documento: ['', [Validators.required, Validators.maxLength(20)]],
+      documento: ['', [Validators.required, naoEmBranco, Validators.maxLength(20)]],
       descricao: ['', Validators.maxLength(200)],
     }),
     documentoCsc: this.fb.group({
@@ -207,7 +207,7 @@ export class IncluirLancamento {
         ],
         updateOn: 'blur',
       }),
-      complementoHistorico: ['', [Validators.required, Validators.maxLength(200)]],
+      complementoHistorico: ['', [Validators.required, naoEmBranco, Validators.maxLength(200)]],
       idDocumentoCsc: ['', Validators.maxLength(20)],
     }),
     // IL-10: lista que cresce e diminui, parte do valor do formulário.

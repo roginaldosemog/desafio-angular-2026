@@ -52,6 +52,8 @@ de um lote. Layout e comportamento visual em [design.md](design.md).
   "Verificando conta…" ou "Verificando evento…". Se a verificação falhar (servidor indisponível),
   o campo mostra "Não foi possível verificar a conta. Tente de novo." (ou "o evento"), Incluir não
   fica travado esperando, e a lupa ou o Enter verificam de novo.
+- **IL-18** Campo de texto obrigatório preenchido só com espaços conta como vazio: mostra a mesma
+  mensagem de obrigatório e não deixa incluir.
 
 ### Grade de lançamentos do lote
 
